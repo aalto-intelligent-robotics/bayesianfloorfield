@@ -1,4 +1,5 @@
-# %%
+# %% Imports
+
 import pickle
 import sys
 
@@ -11,6 +12,8 @@ from deepflow.models import DiscreteDirectional
 from mod import Grid, Helpers, Models
 from mod.OccupancyMap import OccupancyMap
 from mod.Visualisation import MapVisualisation
+
+# %% Network and dataset setup
 
 sys.modules["Grid"] = Grid
 sys.modules["Models"] = Models
@@ -47,13 +50,13 @@ testloader = torch.utils.data.DataLoader(
     testset, batch_size=batch_size, shuffle=False, num_workers=2
 )
 
-# %%
+# %% Enable CUDA (if available)
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 net.to(device)
 
-# %%
+# %% Train
 
 criterion = torch.nn.MSELoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -71,7 +74,7 @@ for epoch in range(2):  # loop over the dataset multiple times
             data[2].to(device, dtype=torch.bool),
         )
 
-        data_test = testiter.next()  # type:ignore
+        data_test = next(testiter)
         inputs_test, labels_test, masks_test = (
             data_test[0].to(device, dtype=torch.float),
             data_test[1].to(device, dtype=torch.float),
@@ -107,6 +110,7 @@ for epoch in range(2):  # loop over the dataset multiple times
 
 print("Finished Training")
 
-# %%
+# %% Save network weights
+
 PATH = "./people_net.pth"
 torch.save(net.state_dict(), PATH)
