@@ -1,0 +1,3 @@
+[flake8]
+exclude = mod, octopytorch
+max-line-length = 79

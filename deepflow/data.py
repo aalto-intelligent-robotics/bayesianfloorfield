@@ -56,7 +56,7 @@ class DiscreteDirectionalDataset(Dataset):
     ) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
         center = self.indeces[index]
         input = np.asarray(
-            self.occupancy.crop(self.window.corners(center)),  # type: ignore
+            self.occupancy.crop(self.window.corners(center)),
             "float",
         )
         assert (
@@ -75,7 +75,7 @@ class DiscreteDirectionalDataset(Dataset):
         mask = np.zeros((self.window.size, self.window.size), "bool")
         for index in self.window.indeces(center):
             if index in self.dynamics.cells:
-                cell = self.dynamics.cells[index]  # type: ignore
+                cell = self.dynamics.cells[index]
                 prob: Sequence[float] = [
                     b["probability"] for b in cell.bins.values()
                 ]
@@ -86,6 +86,6 @@ class DiscreteDirectionalDataset(Dataset):
 
     def get_indeces(self) -> Sequence[RowColumnPair]:
         indeces: List[RowColumnPair] = []
-        for p in self.dynamics.cells.keys():  # type: ignore
+        for p in self.dynamics.cells.keys():
             indeces += self.window.indeces(p)
         return indeces

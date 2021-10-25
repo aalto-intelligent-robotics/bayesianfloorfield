@@ -2,11 +2,8 @@
 import pickle
 import sys
 
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 import torch.optim as optim
-import torchvision
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from deepflow.data import DiscreteDirectionalDataset
@@ -27,11 +24,9 @@ _, local = Helpers.get_local_settings(
     json_path="mod/config/local_settings.json",
     schema_path="mod/config/local_settings_schema.json",
 )
-occ_path = local["dataset_folder"] + "localization_grid.yaml"  # type: ignore
-train_path = local["pickle_folder"] + "discrete_directional.p"  # type: ignore
-test_path = (
-    local["pickle_folder"] + "discrete_directional_2_small.p"  # type: ignore
-)
+occ_path = local["dataset_folder"] + "localization_grid.yaml"
+train_path = local["pickle_folder"] + "discrete_directional.p"
+test_path = local["pickle_folder"] + "discrete_directional_2_small.p"
 
 occ = OccupancyMap.from_yaml(occ_path)
 dyn_train: Grid.Grid = pickle.load(open(train_path, "rb"))
@@ -51,23 +46,6 @@ trainloader = torch.utils.data.DataLoader(
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=batch_size, shuffle=False, num_workers=2
 )
-
-# %%
-
-
-# functions to show an image
-def imshow(img):
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
-
-
-# get some random training images
-dataiter = iter(trainloader)
-inputs, labels, masks = dataiter.next()
-
-# show images
-imshow(torchvision.utils.make_grid(inputs))
 
 # %%
 
@@ -93,7 +71,7 @@ for epoch in range(2):  # loop over the dataset multiple times
             data[2].to(device, dtype=torch.bool),
         )
 
-        data_test = testiter.next()
+        data_test = testiter.next()  # type:ignore
         inputs_test, labels_test, masks_test = (
             data_test[0].to(device, dtype=torch.float),
             data_test[1].to(device, dtype=torch.float),
