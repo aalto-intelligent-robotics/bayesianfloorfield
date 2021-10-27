@@ -68,14 +68,14 @@ for epoch in range(2):  # loop over the dataset multiple times
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
         # get the inputs; data is a list of [inputs, labels]
-        inputs, labels, masks = (
+        inputs, groundtruth, masks = (
             data[0].to(device, dtype=torch.float),
             data[1].to(device, dtype=torch.float),
             data[2].to(device, dtype=torch.bool),
         )
 
         data_test = next(testiter)
-        inputs_test, labels_test, masks_test = (
+        inputs_test, groundtruth_test, masks_test = (
             data_test[0].to(device, dtype=torch.float),
             data_test[1].to(device, dtype=torch.float),
             data_test[2].to(device, dtype=torch.bool),
@@ -85,13 +85,15 @@ for epoch in range(2):  # loop over the dataset multiple times
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        outputs = net(inputs.unsqueeze(1))
-        loss = criterion(outputs, labels.permute(0, 3, 1, 2))
+        outputs = net(inputs)
+        loss = criterion(outputs, groundtruth.permute(0, 3, 1, 2))
         loss.backward()
         optimizer.step()
 
-        outputs_test = net(inputs_test.unsqueeze(1))
-        loss_test = criterion(outputs_test, labels_test.permute(0, 3, 1, 2))
+        outputs_test = net(inputs_test)
+        loss_test = criterion(
+            outputs_test, groundtruth_test.permute(0, 3, 1, 2)
+        )
 
         # print statistics
         running_loss += loss.item()

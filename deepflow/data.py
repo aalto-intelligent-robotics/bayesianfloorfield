@@ -1,4 +1,4 @@
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 from mod.Grid import Grid
@@ -21,16 +21,36 @@ class Window:
         return (
             center[0] - self.half_size,  # left
             center[1] - self.half_size,  # top
-            center[0] + self.half_size,  # right
-            center[1] + self.half_size,  # bottom
+            center[0] + self.half_size + self.size % 2,  # right
+            center[1] + self.half_size + self.size % 2,  # bottom
         )
 
-    def indeces(self, center: RowColumnPair) -> Sequence[RowColumnPair]:
-        return [
+    def indeces(
+        self, center: RowColumnPair, bounds: Optional[Sequence[int]] = None
+    ) -> Set[RowColumnPair]:
+        indeces = {
             (center[0] + row, center[1] + column)
-            for row in range(-self.half_size, self.half_size)
-            for column in range(-self.half_size, self.half_size)
-        ]
+            for row in range(-self.half_size, self.half_size + self.size % 2)
+            for column in range(
+                -self.half_size, self.half_size + self.size % 2
+            )
+        }
+        if bounds:
+            assert len(bounds) == 4
+            min_row, max_row, min_col, max_col = (
+                bounds[0],
+                bounds[1],
+                bounds[2],
+                bounds[3],
+            )
+            indeces = {
+                (
+                    min(max(i[0], min_row), max_row),
+                    min(max(i[1], min_col), max_col),
+                )
+                for i in indeces
+            }
+        return indeces
 
 
 class DiscreteDirectionalDataset(Dataset):
@@ -55,6 +75,12 @@ class DiscreteDirectionalDataset(Dataset):
         self, index: int
     ) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
         center = self.indeces[index]
+        return self.get_by_center(center)
+
+    def get_by_center(
+        self,
+        center: RowColumnPair,
+    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
         input = np.asarray(
             self.occupancy.crop(self.window.corners(center)),
             "float",
@@ -64,7 +90,7 @@ class DiscreteDirectionalDataset(Dataset):
             and input.shape[1] == self.window.size
         )
         output, mask = self._make_dyn_matrix(center)
-        return (input, output, mask)
+        return (np.expand_dims(input, 0), output, mask)
 
     def _make_dyn_matrix(
         self, center: RowColumnPair
