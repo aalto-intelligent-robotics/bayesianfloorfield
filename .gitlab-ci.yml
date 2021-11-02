@@ -1,7 +1,9 @@
 image: "python:3.9.1"
 
 before_script:
-  - pip install -r requirements.txt
+  - python -m pip install --upgrade pip
+  - pip install black flake8 mypy pytest pytest-cov
+  - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 stages:
   - Analysis
@@ -25,4 +27,4 @@ black:
 unit_test:
   stage: Test
   script:
-  - pytest
+  - pytest --cov=deepflow --cov-report term-missing:skip-covered
