@@ -8,7 +8,7 @@ import torch.optim as optim
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from deepflow.data import DiscreteDirectionalDataset
-from deepflow.models import DiscreteDirectional
+from deepflow.nets import DiscreteDirectional
 from mod import Grid, Helpers, Models
 from mod.OccupancyMap import OccupancyMap
 from mod.Visualisation import MapVisualisation

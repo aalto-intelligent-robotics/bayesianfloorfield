@@ -1,4 +1,4 @@
-from deepflow.models import DiscreteDirectional, ConditionalDiscreteDirectional
+from deepflow.nets import DiscreteDirectional, ConditionalDiscreteDirectional
 import mod.Models as mod
 
 

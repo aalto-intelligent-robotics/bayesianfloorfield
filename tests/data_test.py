@@ -1,4 +1,4 @@
-from deepflow.data import Window
+from deepflow.data import DiscreteDirectionalDataset, Window
 
 
 def test_window_size():
@@ -17,6 +17,8 @@ def test_window_corners():
     assert corners[2] - corners[0] == size
     assert corners[3] - corners[1] == size
 
+
+def test_window_corners_odd():
     size = 5
     w = Window(size)
     corners = w.corners((2, 3))
@@ -29,11 +31,15 @@ def test_window_indeces():
     w = Window(5)
     indeces = w.indeces((0, 0))
     assert len(indeces) == 25
+
+
+def test_window_indeces_bound():
+    w = Window(5)
     indeces = w.indeces((0, 0), bounds=[0, 10, 0, 1])
     assert indeces == {(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)}
 
 
-def test_data(dataset):
+def test_data(dataset: DiscreteDirectionalDataset):
     assert len(dataset) == 8
     image, groundtruth, mask = dataset[0]
     assert image.shape == (1, 2, 2)

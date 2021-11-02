@@ -14,6 +14,16 @@ black:
   script:
   - black --check .
 
+flake8:
+  stage: Analysis
+  script:
+  - flake8 .
+
+mypy:
+  stage: Analysis
+  script:
+  - mypy --install-types --non-interactive .
+
 unit_test:
   stage: Test
   script:

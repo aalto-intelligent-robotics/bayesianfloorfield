@@ -1,9 +1,9 @@
+from abc import abstractmethod
 from typing import List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 from mod.Grid import Grid
 from mod.OccupancyMap import OccupancyMap
-from numpy.typing import ArrayLike
 from torch.utils.data import Dataset
 
 RowColumnPair = Tuple[int, int]
@@ -53,14 +53,15 @@ class Window:
         return indeces
 
 
-class DiscreteDirectionalDataset(Dataset):
+class PeopleFlowDataset(Dataset):
     def __init__(
         self,
         occupancy: OccupancyMap,
         dynamics: Grid,
-        window_size: int = 32,
-        output_channels: int = 8,
+        window_size: int,
+        output_channels: int,
     ) -> None:
+        super().__init__()
         self.occupancy = occupancy.binary_map
         self.dynamics = dynamics
         self.map_size = self.occupancy.size
@@ -73,14 +74,14 @@ class DiscreteDirectionalDataset(Dataset):
 
     def __getitem__(
         self, index: int
-    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         center = self.indeces[index]
         return self.get_by_center(center)
 
     def get_by_center(
         self,
         center: RowColumnPair,
-    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         input = np.asarray(
             self.occupancy.crop(self.window.corners(center)),
             "float",
@@ -92,9 +93,28 @@ class DiscreteDirectionalDataset(Dataset):
         output, mask = self._make_dyn_matrix(center)
         return (np.expand_dims(input, 0), output, mask)
 
+    @abstractmethod
     def _make_dyn_matrix(
         self, center: RowColumnPair
-    ) -> Tuple[ArrayLike, ArrayLike]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        raise NotImplementedError
+
+    def get_indeces(self) -> Sequence[RowColumnPair]:
+        indices: List[RowColumnPair] = []
+        for p in self.dynamics.cells.keys():
+            indices += self.window.indeces(p)
+        return indices
+
+
+class DiscreteDirectionalDataset(PeopleFlowDataset):
+    def __init__(
+        self, occupancy: OccupancyMap, dynamics: Grid, window_size: int = 32
+    ) -> None:
+        super().__init__(occupancy, dynamics, window_size, output_channels=8)
+
+    def _make_dyn_matrix(
+        self, center: RowColumnPair
+    ) -> Tuple[np.ndarray, np.ndarray]:
         output = np.zeros(
             (self.window.size, self.window.size, self.output_channels), "float"
         )
@@ -105,13 +125,13 @@ class DiscreteDirectionalDataset(Dataset):
                 prob: Sequence[float] = [
                     b["probability"] for b in cell.bins.values()
                 ]
-                assert max(prob) != 0
                 output[index[0] - center[0], index[1] - center[1], :] = prob
                 mask[index[0] - center[0], index[1] - center[1]] = True
         return (output, mask)
 
-    def get_indeces(self) -> Sequence[RowColumnPair]:
-        indeces: List[RowColumnPair] = []
-        for p in self.dynamics.cells.keys():
-            indeces += self.window.indeces(p)
-        return indeces
+
+class ConditionalDirectionalDataset(PeopleFlowDataset):
+    def __init__(
+        self, occupancy: OccupancyMap, dynamics: Grid, window_size: int = 32
+    ) -> None:
+        super().__init__(occupancy, dynamics, window_size, output_channels=64)
