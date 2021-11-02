@@ -1,32 +1,29 @@
 image: "python:3.9.1"
 
-stages:
-  - Build
-  - Analysis
-  - Test
-
-build:
-  stage: Build
-  script:
+before_script:
   - python -m pip install --upgrade pip
   - pip install black flake8 mypy pytest pytest-cov
   - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-mypy:
+stages:
+  - Analysis
+  - Test
+
+black:
   stage: Analysis
   script:
-  - mypy --install-types
-  - mypy .
+  - black --check .
 
 flake8:
   stage: Analysis
   script:
   - flake8 .
 
-black:
+mypy:
   stage: Analysis
   script:
-  - black --check .
+  - mypy --install-types
+  - mypy .
 
 unit_test:
   stage: Test
