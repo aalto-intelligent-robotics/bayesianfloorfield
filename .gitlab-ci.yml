@@ -22,7 +22,7 @@ flake8:
 mypy:
   stage: Analysis
   script:
-  - mypy --install-types --non-interactive .
+  - mypy --install-types --non-interactive --config-file mypy.ini .
 
 unit_test:
   stage: Test
