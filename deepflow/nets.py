@@ -27,7 +27,7 @@ class PeopleFlow(octo.models.Tiramisu):
         # Example for segmentation:
         # module_bank[octo.ModuleType.ACTIVATION_FINAL] =
         # partial(nn.LogSoftmax, dim=1) Example for regression (default):
-        module_bank[octo.ModuleType.ACTIVATION_FINAL] = nn.Identity
+        module_bank[octo.ModuleType.ACTIVATION_FINAL] = nn.ReLU
 
         super().__init__(
             in_channels=1,  # RGB images

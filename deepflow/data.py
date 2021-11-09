@@ -1,56 +1,12 @@
 from abc import abstractmethod
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import List, Sequence, Tuple
 
 import numpy as np
 from mod.Grid import Grid
 from mod.OccupancyMap import OccupancyMap
 from torch.utils.data import Dataset
 
-RowColumnPair = Tuple[int, int]
-
-
-class Window:
-    def __init__(self, size: int) -> None:
-        self.size = size
-
-    @property
-    def half_size(self) -> int:
-        return int(self.size / 2)
-
-    def corners(self, center: RowColumnPair) -> Sequence[int]:
-        return (
-            center[0] - self.half_size,  # left
-            center[1] - self.half_size,  # top
-            center[0] + self.half_size + self.size % 2,  # right
-            center[1] + self.half_size + self.size % 2,  # bottom
-        )
-
-    def indeces(
-        self, center: RowColumnPair, bounds: Optional[Sequence[int]] = None
-    ) -> Set[RowColumnPair]:
-        indeces = {
-            (center[0] + row, center[1] + column)
-            for row in range(-self.half_size, self.half_size + self.size % 2)
-            for column in range(
-                -self.half_size, self.half_size + self.size % 2
-            )
-        }
-        if bounds:
-            assert len(bounds) == 4
-            min_row, max_row, min_col, max_col = (
-                bounds[0],
-                bounds[1],
-                bounds[2],
-                bounds[3],
-            )
-            indeces = {
-                (
-                    min(max(i[0], min_row), max_row),
-                    min(max(i[1], min_col), max_col),
-                )
-                for i in indeces
-            }
-        return indeces
+from deepflow.utils import RowColumnPair, Window
 
 
 class PeopleFlowDataset(Dataset):

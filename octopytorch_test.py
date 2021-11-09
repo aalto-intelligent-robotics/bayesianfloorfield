@@ -9,6 +9,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 from deepflow.data import DiscreteDirectionalDataset
 from deepflow.nets import DiscreteDirectional
+from deepflow.utils import estimate_dynamics
 from mod import Grid, Helpers, Models
 from mod.OccupancyMap import OccupancyMap
 from mod.Visualisation import MapVisualisation
@@ -116,3 +117,9 @@ print("Finished Training")
 
 PATH = "./people_net.pth"
 torch.save(net.state_dict(), PATH)
+
+# %% Build the full dynamic map
+
+dyn_map = estimate_dynamics(net, occ)
+
+# %%

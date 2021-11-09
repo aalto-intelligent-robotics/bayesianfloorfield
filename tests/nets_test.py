@@ -1,5 +1,5 @@
-from deepflow.nets import DiscreteDirectional, ConditionalDiscreteDirectional
 import mod.Models as mod
+from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
 
 
 def test_discretedirectional_model():
