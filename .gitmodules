@@ -1,6 +1,6 @@
 [submodule "mod"]
 	path = mod
-	url = git@version.aalto.fi:kucnert1/mod_framework.git
+	url = ../../kucnert1/mod_framework.git
 [submodule "octopytorch"]
 	path = octopytorch
-	url = git@github.com:npielawski/octopytorch.git
+	url = https://github.com/npielawski/octopytorch.git
