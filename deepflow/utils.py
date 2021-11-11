@@ -10,22 +10,17 @@ RowColumnPair = Tuple[int, int]
 
 
 def estimate_dynamics(
-    net: PeopleFlow,
-    occupancy: OccupancyMap,
-    window_size: int = 32,
-    normalize: bool = True,
+    net: PeopleFlow, occupancy: OccupancyMap, window_size: int = 32
 ) -> np.ndarray:
     bin_map = occupancy.binary_map
     size = bin_map.size
-    map = np.zeros((size[0], size[1], 8), "float")
+    map = np.zeros((size[0], size[1], net.out_channels), "float")
 
     window = Window(window_size)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
     net.eval()
-    print(size)
     for row in range(size[0]):
-        print(f"row: {row}")
         for column in range(size[1]):
             center = (row, column)
             crop = np.asarray(
@@ -34,7 +29,7 @@ def estimate_dynamics(
             )
             input = torch.from_numpy(np.expand_dims(crop, axis=(0, 1)))
             input = input.to(device, dtype=torch.float)
-            output = net.forward(input)
+            output = net(input)
 
             dynamics = (
                 output.cpu()
@@ -42,9 +37,7 @@ def estimate_dynamics(
                 .numpy()
                 .squeeze()[:, window.half_size, window.half_size]
             )
-            map[row, column] = (
-                dynamics / dynamics.sum() if normalize else dynamics
-            )
+            map[row, column] = dynamics
     return map
 
 

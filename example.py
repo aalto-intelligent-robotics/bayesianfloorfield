@@ -59,16 +59,16 @@ net.to(device)
 
 # %% Train
 
-criterion = torch.nn.MSELoss()
+criterion = torch.nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
 testiter = iter(testloader)
 
-for epoch in range(2):  # loop over the dataset multiple times
+for epoch in range(2):  # loop over the dataset two times
 
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
+        # get the inputs; data is a list of [inputs, groundtruth, masks]
         inputs, groundtruth, masks = (
             data[0].to(device, dtype=torch.float),
             data[1].to(device, dtype=torch.float),
@@ -96,14 +96,13 @@ for epoch in range(2):  # loop over the dataset multiple times
             outputs_test, groundtruth_test.permute(0, 3, 1, 2)
         )
 
-        # print statistics
+        # logging statistics
         running_loss += loss.item()
         writer.add_scalars(
             "loss/training",
             {"training": loss.item(), "validation": loss_test.item()},
             i,
         )
-        # writer.add_scalar("loss/testing", loss_test.item(), i)
         if i % 2000 == 1999:  # print every 2000 mini-batches
             print(
                 "[%d, %5d] loss: %.3f"

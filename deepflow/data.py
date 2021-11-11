@@ -59,7 +59,7 @@ class PeopleFlowDataset(Dataset):
         indices: List[RowColumnPair] = []
         for p in self.dynamics.cells.keys():
             indices += self.window.indeces(p)
-        return indices
+        return list(dict.fromkeys(indices))  # removes duplicates
 
 
 class DiscreteDirectionalDataset(PeopleFlowDataset):

@@ -1,5 +1,5 @@
 import pytest
-from deepflow.nets import DiscreteDirectional
+from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
 from deepflow.utils import Window, estimate_dynamics
 from mod.OccupancyMap import OccupancyMap
 
@@ -42,9 +42,17 @@ def test_window_indeces_bound():
     assert indeces == {(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)}
 
 
-def test_estimate_dynamics(occupancy: OccupancyMap):
+def test_estimate_discretedirectional(occupancy: OccupancyMap):
     net = DiscreteDirectional()
     dyn_map = estimate_dynamics(net, occupancy)
     assert dyn_map.shape == (2, 2, 8)
+    assert sum(dyn_map[0, 0, :]) == pytest.approx(1)
+    assert sum(dyn_map[0, 1, :]) == pytest.approx(1)
+
+
+def test_estimate_conditionaldirectional(occupancy: OccupancyMap):
+    net = ConditionalDiscreteDirectional()
+    dyn_map = estimate_dynamics(net, occupancy)
+    assert dyn_map.shape == (2, 2, 64)
     assert sum(dyn_map[0, 0, :]) == pytest.approx(1)
     assert sum(dyn_map[0, 1, :]) == pytest.approx(1)

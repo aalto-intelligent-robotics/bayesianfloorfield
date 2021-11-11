@@ -20,18 +20,16 @@ class PeopleFlow(octo.models.Tiramisu):
         module_bank[octo.ModuleType.DROPOUT] = partial(
             nn.Dropout2d, p=0.2, inplace=True
         )
-        # Every activation in the model is going to be a GELU (Gaussian Error
-        # Linear Units function). GELU(x) = x * Φ(x) See:
-        # https://pytorch.org/docs/stable/generated/torch.nn.GELU.html
+
+        # Activations
         module_bank[octo.ModuleType.ACTIVATION] = nn.ReLU
-        # Example for segmentation:
-        # module_bank[octo.ModuleType.ACTIVATION_FINAL] =
-        # partial(nn.LogSoftmax, dim=1) Example for regression (default):
-        module_bank[octo.ModuleType.ACTIVATION_FINAL] = nn.ReLU
+        module_bank[octo.ModuleType.ACTIVATION_FINAL] = partial(
+            nn.Softmax, dim=1
+        )
 
         super().__init__(
-            in_channels=1,  # RGB images
-            out_channels=out_channels,  # 5-channel output (5 classes)
+            in_channels=1,  # Binary image
+            out_channels=out_channels,  # N-channel output
             init_conv_filters=48,  # Channels outputted by the 1st convolution
             structure=(
                 [4, 4, 4, 4, 4],  # Down blocks
