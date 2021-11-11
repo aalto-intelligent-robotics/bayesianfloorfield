@@ -59,7 +59,7 @@ net.to(device)
 
 # %% Train
 
-criterion = torch.nn.CrossEntropyLoss()
+criterion = torch.nn.MSELoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
 testiter = iter(testloader)
@@ -75,7 +75,11 @@ for epoch in range(2):  # loop over the dataset two times
             data[2].to(device, dtype=torch.bool),
         )
 
-        data_test = next(testiter)
+        try:
+            data_test = next(testiter)
+        except StopIteration:
+            testiter = iter(testloader)
+            data_test = next(testiter)
         inputs_test, groundtruth_test, masks_test = (
             data_test[0].to(device, dtype=torch.float),
             data_test[1].to(device, dtype=torch.float),
