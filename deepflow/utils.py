@@ -1,12 +1,18 @@
-from typing import Optional, Sequence, Set, Tuple
+from contextlib import nullcontext
+from typing import Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 import torch
 from mod.OccupancyMap import OccupancyMap
+from torch.optim import Optimizer
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard.writer import SummaryWriter
 
 from deepflow.nets import PeopleFlow
 
 RowColumnPair = Tuple[int, int]
+DataPoint = Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+Loss = Union[torch.nn.MSELoss, torch.nn.KLDivLoss]
 
 
 def estimate_dynamics(
@@ -39,6 +45,105 @@ def estimate_dynamics(
             )
             map[row, column] = dynamics
     return map
+
+
+class Trainer:
+    def __init__(
+        self,
+        net: PeopleFlow,
+        optimizer: Optimizer,
+        trainloader: DataLoader,
+        valloader: Optional[DataLoader] = None,
+        criterion: Loss = torch.nn.MSELoss(),
+        device: torch.device = torch.device("cpu"),
+        writer: Optional[SummaryWriter] = None,
+    ) -> None:
+        self.device = device
+        self.net = net
+        self.net.to(self.device)
+        self.criterion = criterion
+        self.optimizer = optimizer
+        self.trainloader = trainloader
+        self.valloader = valloader
+        self.writer = writer
+        self.train_epochs = 0
+
+    def _step(
+        self,
+        data: DataPoint,
+        training: bool,
+    ) -> float:
+        inputs, groundtruth, _ = (
+            data[0].to(self.device, dtype=torch.float),
+            data[1].to(self.device, dtype=torch.float),
+            data[2].to(self.device, dtype=torch.bool),
+        )
+
+        # zero the parameter gradients if training
+        if training:
+            self.optimizer.zero_grad()
+
+        # forward
+        outputs = self.net(inputs)
+        loss = self.criterion(outputs, groundtruth.permute(0, 3, 1, 2))
+
+        # backward + optimize if training
+        if training:
+            loss.backward()
+            self.optimizer.step()
+
+        return loss.item()
+
+    def _epoch(self, training: bool) -> float:
+        if training:
+            dataloader = self.trainloader
+            cm = nullcontext()
+        else:
+            assert self.valloader is not None
+            dataloader = self.valloader
+            cm = torch.no_grad()
+
+        total_loss = 0.0
+        for _, data in enumerate(dataloader, 0):
+            with cm:
+                loss = self._step(data, training)
+            total_loss += loss
+        if training:
+            self.train_epochs += 1
+        return total_loss
+
+    def training_epoch(self) -> float:
+        self.net.train()
+        return self._epoch(training=True)
+
+    def validation_epoch(self) -> float:
+        self.net.eval()
+        return self._epoch(training=False)
+
+    def train(self, epochs: int) -> None:
+        for epoch in range(epochs):
+            train_loss = self.training_epoch()
+            avg_train_loss = train_loss / len(self.trainloader)
+            if self.valloader is not None:
+                val_loss = self.validation_epoch()
+                avg_val_loss = val_loss / len(self.valloader)
+            else:
+                avg_val_loss = np.nan
+
+            # logging statistics
+            if self.writer:
+                self.writer.add_scalars(
+                    "loss/training",
+                    {"training": avg_train_loss, "validation": avg_val_loss},
+                    epoch,
+                )
+            print(
+                f"[{epoch + 1}] LOSS train {avg_train_loss:.3f}, "
+                f"validation {avg_val_loss:.3f}"
+            )
+
+    def save(self, path: str) -> None:
+        torch.save(self.net, path)
 
 
 class Window:

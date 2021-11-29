@@ -1,7 +1,10 @@
 import pytest
+import torch
+from deepflow.data import DiscreteDirectionalDataset
 from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
-from deepflow.utils import Window, estimate_dynamics
+from deepflow.utils import Trainer, Window, estimate_dynamics
 from mod.OccupancyMap import OccupancyMap
+from torch.utils.data import DataLoader
 
 
 def test_window_size():
@@ -56,3 +59,16 @@ def test_estimate_conditionaldirectional(occupancy: OccupancyMap):
     assert dyn_map.shape == (2, 2, 64)
     assert sum(dyn_map[0, 0, :]) == pytest.approx(1)
     assert sum(dyn_map[0, 1, :]) == pytest.approx(1)
+
+
+def test_trainer(dataset: DiscreteDirectionalDataset):
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=2)
+    net = DiscreteDirectional()
+    trainer = Trainer(
+        net=net,
+        trainloader=dataloader,
+        valloader=dataloader,
+        optimizer=torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9),
+    )
+    trainer.train(epochs=1)
+    assert trainer.train_epochs == 1
