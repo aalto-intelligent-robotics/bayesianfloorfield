@@ -1,3 +1,4 @@
+import logging
 from contextlib import nullcontext
 from typing import Optional, Sequence, Set, Tuple, Union
 
@@ -13,6 +14,8 @@ from deepflow.nets import PeopleFlow
 RowColumnPair = Tuple[int, int]
 DataPoint = Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 Loss = Union[torch.nn.MSELoss, torch.nn.KLDivLoss]
+
+logger = logging.getLogger(__name__)
 
 
 def estimate_dynamics(
@@ -133,6 +136,8 @@ class Trainer:
 
     def train(self, epochs: int) -> None:
         prev_epochs = self.train_epochs
+        if prev_epochs:
+            logger.info(f"Recovering training from epoch {prev_epochs}")
         for epoch in range(epochs):
             train_loss = self.training_epoch()
             avg_train_loss = train_loss / len(self.trainloader)
@@ -149,9 +154,9 @@ class Trainer:
                     {"training": avg_train_loss, "validation": avg_val_loss},
                     prev_epochs + epoch + 1,
                 )
-            print(
-                f"[{epoch + 1}] LOSS train {avg_train_loss:.3f}, "
-                f"validation {avg_val_loss:.3f}"
+            logger.info(
+                f"[{prev_epochs + epoch + 1}] LOSS train {avg_train_loss:.3f},"
+                f" validation {avg_val_loss:.3f}"
             )
 
     def save(self, path: str) -> None:
@@ -169,6 +174,7 @@ class Trainer:
         self.net.load_state_dict(checkpoint["model_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.train_epochs = checkpoint["epoch"]
+        logger.debug(f"Loaded trainer checkpoint at epoch {self.train_epochs}")
 
 
 class Window:

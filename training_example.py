@@ -1,5 +1,6 @@
 # %% Imports
 
+import logging
 import pickle
 import sys
 
@@ -14,6 +15,8 @@ from deepflow.utils import Trainer, estimate_dynamics
 from mod import Grid, Helpers, Models
 from mod.OccupancyMap import OccupancyMap
 from mod.Visualisation import MapVisualisation
+
+logging.basicConfig(level=logging.INFO)
 
 # %% Network and dataset setup
 
@@ -84,7 +87,6 @@ trainer.save(path)
 
 path = "./people_net.pth"
 trainer.load(path)
-print(trainer.train_epochs)
 
 # %% Build the full dynamic map
 
