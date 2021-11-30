@@ -104,10 +104,17 @@ class Trainer:
             cm = torch.no_grad()
 
         total_loss = 0.0
-        for _, data in enumerate(dataloader, 0):
+        for i, data in enumerate(dataloader, 0):
             with cm:
                 loss = self._step(data, training)
             total_loss += loss
+            # logging statistics
+            if self.writer and training:
+                self.writer.add_scalar(
+                    "loss/training",
+                    loss,
+                    self.train_epochs * len(dataloader) + i,
+                )
         if training:
             self.train_epochs += 1
         return total_loss
@@ -121,6 +128,7 @@ class Trainer:
         return self._epoch(training=False)
 
     def train(self, epochs: int) -> None:
+        prev_epochs = self.train_epochs
         for epoch in range(epochs):
             train_loss = self.training_epoch()
             avg_train_loss = train_loss / len(self.trainloader)
@@ -133,9 +141,9 @@ class Trainer:
             # logging statistics
             if self.writer:
                 self.writer.add_scalars(
-                    "loss/training",
+                    "loss/epochs",
                     {"training": avg_train_loss, "validation": avg_val_loss},
-                    epoch,
+                    prev_epochs + epoch + 1,
                 )
             print(
                 f"[{epoch + 1}] LOSS train {avg_train_loss:.3f}, "
@@ -143,7 +151,7 @@ class Trainer:
             )
 
     def save(self, path: str) -> None:
-        torch.save(self.net, path)
+        torch.save(self.net.state_dict(), path)
 
 
 class Window:

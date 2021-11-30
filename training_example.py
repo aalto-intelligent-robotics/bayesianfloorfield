@@ -64,7 +64,7 @@ optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 trainer = Trainer(
     net=net,
     trainloader=trainloader,
-    # valloader=valloader,
+    valloader=valloader,
     optimizer=optimizer,
     criterion=criterion,
     device=device,
@@ -78,7 +78,7 @@ trainer.train(epochs=5)
 # %% Save network weights
 
 path = "./people_net.pth"
-torch.save(trainer.net, path)
+trainer.save(path)
 
 # %% Build the full dynamic map
 
