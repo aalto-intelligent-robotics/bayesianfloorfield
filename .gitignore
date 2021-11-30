@@ -83,3 +83,4 @@ dmypy.json
 data
 runs
 *.pth
+*.npy

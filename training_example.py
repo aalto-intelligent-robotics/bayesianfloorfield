@@ -90,4 +90,4 @@ trainer.load(path)
 
 # %% Build the full dynamic map
 
-dyn_map = estimate_dynamics(net, occ)
+dyn_map = estimate_dynamics(net, occ, device=device, batch_size=1000)

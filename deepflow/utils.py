@@ -8,6 +8,7 @@ from mod.OccupancyMap import OccupancyMap
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
+from tqdm import trange
 
 from deepflow.nets import PeopleFlow
 
@@ -22,36 +23,39 @@ def estimate_dynamics(
     net: PeopleFlow,
     occupancy: OccupancyMap,
     window_size: int = 32,
+    batch_size: int = 4,
     device: Optional[torch.device] = None,
 ) -> np.ndarray:
-    bin_map = occupancy.binary_map
-    size = bin_map.size
-    map = np.zeros((size[0], size[1], net.out_channels), "float")
 
-    window = Window(window_size)
     if not device:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
     net.eval()
-    for row in range(size[0]):
-        for column in range(size[1]):
-            center = (row, column)
-            crop = np.asarray(
-                bin_map.crop(window.corners(center)),
-                "float",
-            )
-            input = torch.from_numpy(np.expand_dims(crop, axis=(0, 1)))
-            input = input.to(device, dtype=torch.float)
-            output = net(input)
+    bin_map = np.array(occupancy.binary_map)
+    h, w = bin_map.shape
+    channels = 1
+    if window_size % 2:  # odd window
+        pad_size = (window_size // 2, window_size // 2)
+    else:  # even window
+        pad_size = (window_size // 2 - 1, window_size // 2)
+    padded_map = np.pad(bin_map, pad_size)
+    input = torch.from_numpy(np.expand_dims(padded_map, axis=(0, 1)))
 
-            dynamics = (
-                output.cpu()
-                .detach()
-                .numpy()
-                .squeeze()[:, window.half_size, window.half_size]
-            )
-            map[row, column] = dynamics
-    return map
+    kh, kw = window_size, window_size  # kernel size
+    dh, dw = 1, 1  # stride
+
+    patches = input.unfold(2, kh, dh).unfold(3, kw, dw)
+    patches = patches.contiguous().view(-1, channels, kh, kw)
+    with torch.no_grad():
+        centers = torch.empty((patches.shape[0], net.out_channels))
+        for i in trange(0, patches.shape[0], batch_size):
+            end = min(i + batch_size, patches.shape[0])
+            batch = patches[i:end, ...].to(device, dtype=torch.float)
+            output = net(batch)
+            centers[i:end] = output[:, :, pad_size[0], pad_size[0]]
+        map = centers.view((h, w, net.out_channels))
+
+    return map.numpy()
 
 
 class Trainer:
@@ -183,7 +187,7 @@ class Window:
 
     @property
     def half_size(self) -> int:
-        return int(self.size / 2)
+        return self.size // 2
 
     def corners(self, center: RowColumnPair) -> Sequence[int]:
         return (
