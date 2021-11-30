@@ -1,11 +1,15 @@
 from unittest import mock
+from deepflow.nets import DiscreteDirectional
 
 import mod.Models as mod
 import pytest
 from deepflow.data import DiscreteDirectionalDataset
+from deepflow.utils import Trainer
 from mod.Grid import Grid
 from mod.OccupancyMap import OccupancyMap
 from PIL import Image
+from torch.utils.data import DataLoader
+from torch.optim import SGD
 
 
 @pytest.fixture
@@ -28,4 +32,16 @@ def grid() -> Grid:
 def dataset(occupancy: OccupancyMap, grid: Grid) -> DiscreteDirectionalDataset:
     return DiscreteDirectionalDataset(
         occupancy=occupancy, dynamics=grid, window_size=2
+    )
+
+
+@pytest.fixture
+def trainer(dataset: DiscreteDirectionalDataset) -> Trainer:
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=2)
+    net = DiscreteDirectional()
+    return Trainer(
+        net=net,
+        trainloader=dataloader,
+        valloader=dataloader,
+        optimizer=SGD(net.parameters(), lr=0.001, momentum=0.9),
     )

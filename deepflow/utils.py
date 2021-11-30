@@ -16,14 +16,18 @@ Loss = Union[torch.nn.MSELoss, torch.nn.KLDivLoss]
 
 
 def estimate_dynamics(
-    net: PeopleFlow, occupancy: OccupancyMap, window_size: int = 32
+    net: PeopleFlow,
+    occupancy: OccupancyMap,
+    window_size: int = 32,
+    device: Optional[torch.device] = None,
 ) -> np.ndarray:
     bin_map = occupancy.binary_map
     size = bin_map.size
     map = np.zeros((size[0], size[1], net.out_channels), "float")
 
     window = Window(window_size)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if not device:
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
     net.eval()
     for row in range(size[0]):
@@ -151,7 +155,20 @@ class Trainer:
             )
 
     def save(self, path: str) -> None:
-        torch.save(self.net.state_dict(), path)
+        torch.save(
+            {
+                "epoch": self.train_epochs,
+                "model_state_dict": self.net.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+            },
+            path,
+        )
+
+    def load(self, path: str) -> None:
+        checkpoint = torch.load(path)
+        self.net.load_state_dict(checkpoint["model_state_dict"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        self.train_epochs = checkpoint["epoch"]
 
 
 class Window:

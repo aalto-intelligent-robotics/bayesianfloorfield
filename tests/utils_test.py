@@ -1,10 +1,10 @@
+from pathlib import Path
+
 import pytest
-import torch
-from deepflow.data import DiscreteDirectionalDataset
 from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
 from deepflow.utils import Trainer, Window, estimate_dynamics
 from mod.OccupancyMap import OccupancyMap
-from torch.utils.data import DataLoader
+from torch import device
 
 
 def test_window_size():
@@ -47,7 +47,7 @@ def test_window_indeces_bound():
 
 def test_estimate_discretedirectional(occupancy: OccupancyMap):
     net = DiscreteDirectional()
-    dyn_map = estimate_dynamics(net, occupancy)
+    dyn_map = estimate_dynamics(net, occupancy, device=device("cpu"))
     assert dyn_map.shape == (2, 2, 8)
     assert sum(dyn_map[0, 0, :]) == pytest.approx(1)
     assert sum(dyn_map[0, 1, :]) == pytest.approx(1)
@@ -55,20 +55,22 @@ def test_estimate_discretedirectional(occupancy: OccupancyMap):
 
 def test_estimate_conditionaldirectional(occupancy: OccupancyMap):
     net = ConditionalDiscreteDirectional()
-    dyn_map = estimate_dynamics(net, occupancy)
+    dyn_map = estimate_dynamics(net, occupancy, device=device("cpu"))
     assert dyn_map.shape == (2, 2, 64)
     assert sum(dyn_map[0, 0, :]) == pytest.approx(1)
     assert sum(dyn_map[0, 1, :]) == pytest.approx(1)
 
 
-def test_trainer(dataset: DiscreteDirectionalDataset):
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=2)
-    net = DiscreteDirectional()
-    trainer = Trainer(
-        net=net,
-        trainloader=dataloader,
-        valloader=dataloader,
-        optimizer=torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9),
-    )
+def test_trainer(trainer: Trainer):
     trainer.train(epochs=1)
     assert trainer.train_epochs == 1
+
+
+def test_save_load_trainer(trainer: Trainer, tmp_path: Path):
+    trainer.train(epochs=2)
+    path = tmp_path / "trainer_state.pth"
+    trainer.save(path.as_posix())
+    trainer.train(epochs=1)
+    assert trainer.train_epochs == 3
+    trainer.load(path.as_posix())
+    assert trainer.train_epochs == 2

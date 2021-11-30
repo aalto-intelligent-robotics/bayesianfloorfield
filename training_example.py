@@ -80,6 +80,12 @@ trainer.train(epochs=5)
 path = "./people_net.pth"
 trainer.save(path)
 
+# %% Load network weights
+
+path = "./people_net.pth"
+trainer.load(path)
+print(trainer.train_epochs)
+
 # %% Build the full dynamic map
 
 dyn_map = estimate_dynamics(net, occ)
