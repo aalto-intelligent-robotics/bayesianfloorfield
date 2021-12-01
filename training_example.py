@@ -3,7 +3,10 @@
 import logging
 import pickle
 import sys
+from enum import Enum
 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -91,3 +94,37 @@ trainer.load(path)
 # %% Build the full dynamic map
 
 dyn_map = estimate_dynamics(net, occ, device=device, batch_size=1000)
+np.save("map.npy", dyn_map)
+
+# %% Load a saved full dynamic map
+dyn_map = np.load("map.npy")
+
+# %% Visualize
+
+
+class Direction(Enum):
+    N = 0
+    NE = 1
+    E = 2
+    SE = 3
+    S = 4
+    SW = 5
+    W = 6
+    NW = 7
+
+
+def plot_dir(map: np.ndarray, dir: Direction):
+    plt.figure(dpi=300)
+    plt.imshow(map[..., dir.value], cmap="hot")
+    plt.imshow(
+        np.ma.masked_where(np.array(occ.binary_map) < 255, occ.binary_map),
+        vmin=0,
+        vmax=255,
+        cmap="gray",
+        interpolation="none",
+    )
+
+
+plot_dir(np.array(dyn_map), Direction.N)
+plot_dir(np.array(dyn_map), Direction.S)
+# %%
