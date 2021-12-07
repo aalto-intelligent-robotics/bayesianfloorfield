@@ -11,8 +11,11 @@ DynModel = Union[
 
 
 class PeopleFlow(octo.models.Tiramisu):
-    def __init__(self, model: DynModel, out_channels: int) -> None:
+    def __init__(
+        self, model: DynModel, window_size: int, out_channels: int
+    ) -> None:
         self.model = model
+        self.window_size = window_size
 
         module_bank = octo.DEFAULT_MODULE_BANK.copy()
 
@@ -49,12 +52,18 @@ class PeopleFlow(octo.models.Tiramisu):
 
 
 class DiscreteDirectional(PeopleFlow):
-    def __init__(self) -> None:
-        super().__init__(model=mod.DiscreteDirectional, out_channels=8)
+    def __init__(self, window_size: int) -> None:
+        super().__init__(
+            model=mod.DiscreteDirectional,
+            window_size=window_size,
+            out_channels=8,
+        )
 
 
 class ConditionalDiscreteDirectional(PeopleFlow):
-    def __init__(self) -> None:
+    def __init__(self, window_size: int) -> None:
         super().__init__(
-            model=mod.DiscreteConditionalDirectional, out_channels=64
+            model=mod.DiscreteConditionalDirectional,
+            window_size=window_size,
+            out_channels=64,
         )

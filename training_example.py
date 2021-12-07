@@ -3,7 +3,6 @@
 import logging
 import pickle
 import sys
-from enum import Enum
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +13,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 from deepflow.data import DiscreteDirectionalDataset
 from deepflow.nets import DiscreteDirectional
-from deepflow.utils import Trainer, estimate_dynamics
+from deepflow.utils import Direction, Trainer, estimate_dynamics
 from mod import Grid, Helpers, Models
 from mod.OccupancyMap import OccupancyMap
 from mod.Visualisation import MapVisualisation
@@ -44,10 +43,13 @@ dyn_test: Grid.Grid = pickle.load(open(test_path, "rb"))
 
 MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 
-trainset = DiscreteDirectionalDataset(occ, dyn_train)
-valset = DiscreteDirectionalDataset(occ, dyn_test)
+# %%
+window_size = 64
 
-net = DiscreteDirectional()
+trainset = DiscreteDirectionalDataset(occ, dyn_train, window_size)
+valset = DiscreteDirectionalDataset(occ, dyn_test, window_size)
+
+net = DiscreteDirectional(window_size)
 
 # %% Training context
 
@@ -93,24 +95,13 @@ trainer.load(path)
 
 # %% Build the full dynamic map
 
-dyn_map = estimate_dynamics(net, occ, device=device, batch_size=1000)
+dyn_map = estimate_dynamics(net, occ, device=device, batch_size=500)
 np.save("map.npy", dyn_map)
 
 # %% Load a saved full dynamic map
 dyn_map = np.load("map.npy")
 
 # %% Visualize
-
-
-class Direction(Enum):
-    N = 0
-    NE = 1
-    E = 2
-    SE = 3
-    S = 4
-    SW = 5
-    W = 6
-    NW = 7
 
 
 def plot_dir(map: np.ndarray, dir: Direction):

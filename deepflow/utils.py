@@ -1,5 +1,6 @@
 import logging
 from contextlib import nullcontext
+from enum import IntEnum
 from typing import Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
@@ -12,48 +13,84 @@ from tqdm import trange
 
 from deepflow.nets import PeopleFlow
 
+logger = logging.getLogger(__name__)
+
 RowColumnPair = Tuple[int, int]
-DataPoint = Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+DataPoint = Tuple[torch.Tensor, torch.Tensor]
 Loss = Union[torch.nn.MSELoss, torch.nn.KLDivLoss]
 
-logger = logging.getLogger(__name__)
+
+class Direction(IntEnum):
+    E = 0
+    NE = 1
+    N = 2
+    NW = 3
+    W = 4
+    SW = 5
+    S = 6
+    SE = 7
+
+    def rad(self) -> float:
+        return self.value * 2 * np.pi / 8
 
 
 def estimate_dynamics(
     net: PeopleFlow,
     occupancy: OccupancyMap,
-    window_size: int = 32,
     batch_size: int = 4,
     device: Optional[torch.device] = None,
 ) -> np.ndarray:
-
+    window = Window(net.window_size)
     if not device:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
     net.eval()
+
     bin_map = np.array(occupancy.binary_map)
     h, w = bin_map.shape
     channels = 1
-    if window_size % 2:  # odd window
-        pad_size = (window_size // 2, window_size // 2)
-    else:  # even window
-        pad_size = (window_size // 2 - 1, window_size // 2)
-    padded_map = np.pad(bin_map, pad_size)
+    padded_map = np.pad(bin_map, window.pad_amount)
     input = torch.from_numpy(np.expand_dims(padded_map, axis=(0, 1)))
+    del bin_map, padded_map
 
-    kh, kw = window_size, window_size  # kernel size
+    kh, kw = window.size, window.size  # kernel size
     dh, dw = 1, 1  # stride
-
     patches = input.unfold(2, kh, dh).unfold(3, kw, dw)
     patches = patches.contiguous().view(-1, channels, kh, kw)
+    del input
+
+    num_pixels = patches.shape[0]
+    empty_patch = torch.zeros(
+        (1, 1, net.window_size, net.window_size), dtype=torch.uint8
+    )
+    nonempty_i = (patches == empty_patch).all(dim=3).all(dim=2).squeeze()
+    assert len(nonempty_i)
+    empty_i = torch.logical_not(nonempty_i)
+    nonempty_patches = patches[nonempty_i]
+    del patches
+
     with torch.no_grad():
-        centers = torch.empty((patches.shape[0], net.out_channels))
-        for i in trange(0, patches.shape[0], batch_size):
-            end = min(i + batch_size, patches.shape[0])
-            batch = patches[i:end, ...].to(device, dtype=torch.float)
+        nonempty_centers = torch.empty(
+            (nonempty_patches.shape[0], net.out_channels)
+        )
+        empty_center = net(empty_patch.to(device, dtype=torch.float))[
+            :, :, window.center[0], window.center[1]
+        ]
+        for i in trange(0, nonempty_patches.shape[0], batch_size):
+            end = min(i + batch_size, nonempty_patches.shape[0])
+            batch = nonempty_patches[i:end, ...].to(device, dtype=torch.float)
             output = net(batch)
-            centers[i:end] = output[:, :, pad_size[0], pad_size[0]]
+            nonempty_centers[i:end] = output[
+                :, :, window.center[0], window.center[1]
+            ]
+        del nonempty_patches, empty_patch
+
+        centers = torch.empty((num_pixels, net.out_channels))
+        centers[nonempty_i] = nonempty_centers
+        centers[empty_i] = empty_center
+        del nonempty_centers, empty_center, nonempty_i, empty_i
         map = centers.view((h, w, net.out_channels))
+        del centers
 
     return map.numpy()
 
@@ -78,16 +115,16 @@ class Trainer:
         self.valloader = valloader
         self.writer = writer
         self.train_epochs = 0
+        self.cr, self.cc = Window(net.window_size).center
 
     def _step(
         self,
         data: DataPoint,
         training: bool,
     ) -> float:
-        inputs, groundtruth, _ = (
+        inputs, groundtruth = (
             data[0].to(self.device, dtype=torch.float),
             data[1].to(self.device, dtype=torch.float),
-            data[2].to(self.device, dtype=torch.bool),
         )
 
         # zero the parameter gradients if training
@@ -96,7 +133,7 @@ class Trainer:
 
         # forward
         outputs = self.net(inputs)
-        loss = self.criterion(outputs, groundtruth.permute(0, 3, 1, 2))
+        loss = self.criterion(outputs[..., self.cr, self.cc], groundtruth)
 
         # backward + optimize if training
         if training:
@@ -189,37 +226,39 @@ class Window:
     def half_size(self) -> int:
         return self.size // 2
 
-    def corners(self, center: RowColumnPair) -> Sequence[int]:
-        return (
-            center[0] - self.half_size,  # left
-            center[1] - self.half_size,  # top
-            center[0] + self.half_size + self.size % 2,  # right
-            center[1] + self.half_size + self.size % 2,  # bottom
+    @property
+    def center(self) -> RowColumnPair:
+        return (self.half_size, self.half_size)
+
+    @property
+    def pad_amount(self) -> Sequence[int]:
+        return (self.half_size, self.half_size + self.size % 2 - 1)
+
+    def corners(
+        self, center: RowColumnPair, bounds: Optional[Sequence[int]] = None
+    ) -> Sequence[int]:
+        left, top, right, bottom = (
+            center[1] - self.half_size,  # left
+            center[0] - self.half_size,  # top
+            center[1] + self.half_size + self.size % 2,  # right
+            center[0] + self.half_size + self.size % 2,  # bottom
         )
+        if bounds:
+            assert len(bounds) == 4
+            min_row, max_row, min_col, max_col = bounds
+            left = max(min_col, left)
+            top = max(min_row, top)
+            right = min(max_col, right)
+            bottom = min(max_row, bottom)
+        return (left, top, right, bottom)
 
     def indeces(
         self, center: RowColumnPair, bounds: Optional[Sequence[int]] = None
     ) -> Set[RowColumnPair]:
+        left, top, right, bottom = self.corners(center, bounds)
         indeces = {
-            (center[0] + row, center[1] + column)
-            for row in range(-self.half_size, self.half_size + self.size % 2)
-            for column in range(
-                -self.half_size, self.half_size + self.size % 2
-            )
+            (row, col)
+            for row in range(top, bottom)
+            for col in range(left, right)
         }
-        if bounds:
-            assert len(bounds) == 4
-            min_row, max_row, min_col, max_col = (
-                bounds[0],
-                bounds[1],
-                bounds[2],
-                bounds[3],
-            )
-            indeces = {
-                (
-                    min(max(i[0], min_row), max_row),
-                    min(max(i[1], min_col), max_col),
-                )
-                for i in indeces
-            }
         return indeces
