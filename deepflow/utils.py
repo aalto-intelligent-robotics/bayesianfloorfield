@@ -34,6 +34,17 @@ class Direction(IntEnum):
         return self.value * 2 * np.pi / 8
 
 
+def random_input(
+    size: int = 32,
+    p_occupied: float = 0.5,
+    device: torch.device = torch.device("cpu"),
+) -> torch.Tensor:
+    w = Window(size)
+    a = torch.rand((1, 1, size, size), device=device) < p_occupied
+    a[0, 0, w.center[0], w.center[1]] = 0  # ensure center is empty
+    return a.type(torch.float)
+
+
 def estimate_dynamics(
     net: PeopleFlow,
     occupancy: OccupancyMap,
@@ -63,9 +74,9 @@ def estimate_dynamics(
     empty_patch = torch.zeros(
         (1, 1, net.window_size, net.window_size), dtype=torch.uint8
     )
-    nonempty_i = (patches == empty_patch).all(dim=3).all(dim=2).squeeze()
-    assert len(nonempty_i)
-    empty_i = torch.logical_not(nonempty_i)
+    empty_i = (patches == empty_patch).all(dim=3).all(dim=2).squeeze()
+    nonempty_i = torch.logical_not(empty_i)
+    assert len(nonempty_i.nonzero())
     nonempty_patches = patches[nonempty_i]
     del patches
 
@@ -86,8 +97,8 @@ def estimate_dynamics(
         del nonempty_patches, empty_patch
 
         centers = torch.empty((num_pixels, net.out_channels))
-        centers[nonempty_i] = nonempty_centers
-        centers[empty_i] = empty_center
+        centers[nonempty_i] = nonempty_centers.detach().cpu()
+        centers[empty_i] = empty_center.detach().cpu()
         del nonempty_centers, empty_center, nonempty_i, empty_i
         map = centers.view((h, w, net.out_channels))
         del centers
