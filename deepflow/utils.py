@@ -76,7 +76,6 @@ def estimate_dynamics(
     )
     empty_i = (patches == empty_patch).all(dim=3).all(dim=2).squeeze()
     nonempty_i = torch.logical_not(empty_i)
-    assert len(nonempty_i.nonzero())
     nonempty_patches = patches[nonempty_i]
     del patches
 
