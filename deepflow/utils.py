@@ -3,6 +3,7 @@ from contextlib import nullcontext
 from enum import IntEnum
 from typing import Optional, Sequence, Set, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from mod.OccupancyMap import OccupancyMap
@@ -32,6 +33,76 @@ class Direction(IntEnum):
 
     def rad(self) -> float:
         return self.value * 2 * np.pi / 8
+
+    def u(self) -> float:
+        return np.cos(self.rad())
+
+    def v(self) -> float:
+        return np.sin(self.rad())
+
+    def uv(self) -> tuple[float, float]:
+        return (self.u(), self.v())
+
+
+def plot_dir(
+    occupancy: OccupancyMap,
+    dynamics: np.ndarray,
+    dir: Direction,
+    dpi: int = 300,
+    cmap: str = "hot",
+):
+    binary_map = occupancy.binary_map
+    plt.figure(dpi=dpi)
+    plt.title(f"Direction: {dir.name}")
+    plt.imshow(dynamics[..., dir.value], vmin=0, vmax=1, cmap=cmap)
+    plt.imshow(
+        np.ma.masked_where(np.array(binary_map) < 255, binary_map),
+        vmin=0,
+        vmax=255,
+        cmap="gray",
+        interpolation="none",
+    )
+
+
+def plot_window(
+    occupancy: np.ndarray,
+    dynamics: np.ndarray,
+    enter_dir: Optional[Direction] = None,
+    normalize: bool = True,
+    dpi: int = 300,
+):
+    sz = dynamics.shape
+    assert occupancy.shape == sz[0:2]
+    if enter_dir is None:
+        assert sz[2] == 8
+    else:
+        e = enter_dir.value * 8
+        dynamics = dynamics[..., e : e + 8]
+
+    plt.figure(dpi=dpi)
+    # plt.imshow(dynamics[..., Direction.N], vmin=0, vmax=1, cmap="jet")
+    YX = np.mgrid[0 : sz[0], 0 : sz[1]]
+    Y: list[list[int]] = [[y] * 8 for y in YX[0].flatten()]
+    X: list[list[int]] = [[x] * 8 for x in YX[1].flatten()]
+    u = [d.u() for d in Direction]
+    v = [d.v() for d in Direction]
+    d = dynamics.reshape((-1, 8))
+    U = d * (_scale_quivers(d) if normalize else 1) * u
+    V = d * (_scale_quivers(d) if normalize else 1) * v
+    plt.quiver(X, Y, U, V, units="dots", minshaft=2, scale_units="xy", scale=2)
+    plt.imshow(
+        np.ma.masked_where(occupancy < 255, 255 - occupancy),
+        vmin=0,
+        vmax=255,
+        cmap="gray",
+        interpolation="none",
+    )
+
+
+def _scale_quivers(d: np.ndarray) -> np.ndarray:
+    max = np.amax(d, axis=1)
+    ret = np.expand_dims(np.where(max != 0, max, 1), axis=1)
+    return 1 / ret
 
 
 def random_input(

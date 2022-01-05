@@ -4,7 +4,6 @@ import logging
 import pickle
 import sys
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.optim as optim
@@ -13,7 +12,13 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 from deepflow.data import DiscreteDirectionalDataset
 from deepflow.nets import DiscreteDirectional
-from deepflow.utils import Direction, Trainer, estimate_dynamics
+from deepflow.utils import (
+    Direction,
+    Trainer,
+    estimate_dynamics,
+    plot_dir,
+    plot_window,
+)
 from mod import Grid, Helpers, Models
 from mod.OccupancyMap import OccupancyMap
 from mod.Visualisation import MapVisualisation
@@ -103,19 +108,19 @@ dyn_map = np.load("map.npy")
 
 # %% Visualize
 
+plot_dir(occ, dyn_map, Direction.N)
+plot_dir(occ, dyn_map, Direction.E)
+plot_dir(occ, dyn_map, Direction.S)
+plot_dir(occ, dyn_map, Direction.W)
 
-def plot_dir(map: np.ndarray, dir: Direction):
-    plt.figure(dpi=300)
-    plt.imshow(map[..., dir.value], cmap="hot")
-    plt.imshow(
-        np.ma.masked_where(np.array(occ.binary_map) < 255, occ.binary_map),
-        vmin=0,
-        vmax=255,
-        cmap="gray",
-        interpolation="none",
-    )
+# %% Visualize quiver
 
+xc, yc = (170, 500)
+w = 64
+plot_window(
+    np.array(occ.binary_map)[xc : xc + w, yc : yc + w],
+    dyn_map[xc : xc + w, yc : yc + w, ...],
+    dpi=1000,
+)
 
-plot_dir(np.array(dyn_map), Direction.N)
-plot_dir(np.array(dyn_map), Direction.S)
 # %%
