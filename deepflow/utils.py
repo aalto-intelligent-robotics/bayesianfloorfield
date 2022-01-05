@@ -64,34 +64,51 @@ def plot_dir(
     )
 
 
-def plot_window(
+def plot_quivers(
     occupancy: np.ndarray,
     dynamics: np.ndarray,
     enter_dir: Optional[Direction] = None,
+    window_size: Optional[int] = None,
+    center: Optional[RowColumnPair] = None,
     normalize: bool = True,
     dpi: int = 300,
 ):
     sz = dynamics.shape
     assert occupancy.shape == sz[0:2]
+    assert (window_size is None and center is None) or (
+        window_size is not None and center is not None
+    )
     if enter_dir is None:
         assert sz[2] == 8
     else:
         e = enter_dir.value * 8
         dynamics = dynamics[..., e : e + 8]
 
+    if window_size is not None and center is not None:
+        w = Window(window_size)
+        left, top, right, bottom = w.corners(
+            center, bounds=(0, sz[0], 0, sz[1])
+        )
+        occ = occupancy[top:bottom, left:right]
+        dyn = dynamics[top:bottom, left:right, ...]
+    else:
+        occ = occupancy
+        dyn = dynamics
+    dyn = dyn.reshape((-1, 8))
+    if normalize:
+        dyn = scale_quivers(dyn)
+
     plt.figure(dpi=dpi)
-    # plt.imshow(dynamics[..., Direction.N], vmin=0, vmax=1, cmap="jet")
-    YX = np.mgrid[0 : sz[0], 0 : sz[1]]
+    YX = np.mgrid[0 : occ.shape[0], 0 : occ.shape[1]]
     Y: list[list[int]] = [[y] * 8 for y in YX[0].flatten()]
     X: list[list[int]] = [[x] * 8 for x in YX[1].flatten()]
     u = [d.u() for d in Direction]
     v = [d.v() for d in Direction]
-    d = dynamics.reshape((-1, 8))
-    U = d * (_scale_quivers(d) if normalize else 1) * u
-    V = d * (_scale_quivers(d) if normalize else 1) * v
+    U = dyn * u
+    V = dyn * v
     plt.quiver(X, Y, U, V, units="dots", minshaft=2, scale_units="xy", scale=2)
     plt.imshow(
-        np.ma.masked_where(occupancy < 255, 255 - occupancy),
+        np.ma.masked_where(occ < 255, 255 - occ),
         vmin=0,
         vmax=255,
         cmap="gray",
@@ -99,10 +116,10 @@ def plot_window(
     )
 
 
-def _scale_quivers(d: np.ndarray) -> np.ndarray:
+def scale_quivers(d: np.ndarray) -> np.ndarray:
     max = np.amax(d, axis=1)
     ret = np.expand_dims(np.where(max != 0, max, 1), axis=1)
-    return 1 / ret
+    return d / ret
 
 
 def random_input(

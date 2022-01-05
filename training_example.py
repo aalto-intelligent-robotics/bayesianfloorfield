@@ -17,7 +17,7 @@ from deepflow.utils import (
     Trainer,
     estimate_dynamics,
     plot_dir,
-    plot_window,
+    plot_quivers,
 )
 from mod import Grid, Helpers, Models
 from mod.OccupancyMap import OccupancyMap
@@ -115,12 +115,10 @@ plot_dir(occ, dyn_map, Direction.W)
 
 # %% Visualize quiver
 
-xc, yc = (170, 500)
+center = (200, 530)
 w = 64
-plot_window(
-    np.array(occ.binary_map)[xc : xc + w, yc : yc + w],
-    dyn_map[xc : xc + w, yc : yc + w, ...],
-    dpi=1000,
+plot_quivers(
+    np.array(occ.binary_map), dyn_map, dpi=1000, center=center, window_size=w
 )
 
 # %%
