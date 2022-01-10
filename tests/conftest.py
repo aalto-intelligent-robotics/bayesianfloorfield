@@ -15,7 +15,10 @@ from torch.utils.data import DataLoader
 @pytest.fixture
 def occupancy() -> OccupancyMap:
     occupancy = mock.MagicMock(spec=OccupancyMap)
-    occupancy.configure_mock(**{"binary_map": Image.new("L", (2, 2))})
+    map = Image.new("L", (2, 2))
+    pixels = map.load()
+    pixels[1, 0] = 1
+    occupancy.configure_mock(**{"binary_map": map})
     return occupancy
 
 
@@ -24,6 +27,9 @@ def grid() -> Grid:
     grid = mock.MagicMock(spec=Grid)
     cell1 = mod.DiscreteDirectional(coords=(0, 0), index=(0, 0))
     cell2 = mod.DiscreteDirectional(coords=(0, 1), index=(0, 1))
+    cell1.bins[cell1.directions[0]]["probability"] = 1.0 / 2
+    cell1.bins[cell1.directions[5]]["probability"] = 1.0 / 2
+    cell2.bins[cell1.directions[1]]["probability"] = 1.0
     grid.configure_mock(**{"cells": {(0, 0): cell1, (0, 1): cell2}})
     return grid
 

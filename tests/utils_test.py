@@ -4,9 +4,11 @@ import numpy as np
 import pytest
 from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
 from deepflow.utils import (
+    Direction,
     Trainer,
     Window,
     estimate_dynamics,
+    flip_directions,
     random_input,
     scale_quivers,
 )
@@ -34,6 +36,20 @@ def test_random_input(p_occupied: float, expected: np.ndarray):
     tensor = random_input(size=16, p_occupied=p_occupied)
     assert tensor.dtype == float32
     assert (tensor.numpy() == expected).all()
+
+
+@pytest.mark.parametrize(
+    ["dirA", "dirB", "expected"],
+    [
+        (Direction.N, Direction.N, [1, 2, 3, 4, 5, 6, 7, 8]),
+        (Direction.E, Direction.NE, [2, 1, 3, 4, 5, 6, 7, 8]),
+        (Direction.SE, Direction.SW, [1, 2, 3, 4, 5, 8, 7, 6]),
+        (Direction.N, Direction.S, [1, 2, 7, 4, 5, 6, 3, 8]),
+    ],
+)
+def test_flip_directions(dirA: Direction, dirB: Direction, expected: list):
+    a = np.array([1, 2, 3, 4, 5, 6, 7, 8])
+    assert (flip_directions(a, dirA, dirB) == np.array(expected)).all()
 
 
 def test_window_size():

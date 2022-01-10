@@ -7,10 +7,15 @@ import sys
 import numpy as np
 import torch
 import torch.optim as optim
+import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from deepflow.data import DiscreteDirectionalDataset
+from deepflow.data import (
+    DiscreteDirectionalDataset,
+    RandomHorizontalFlipPeopleFlow,
+    RandomVerticalFlipPeopleFlow,
+)
 from deepflow.nets import DiscreteDirectional
 from deepflow.utils import (
     Direction,
@@ -18,6 +23,7 @@ from deepflow.utils import (
     estimate_dynamics,
     plot_dir,
     plot_quivers,
+    random_input,
 )
 from mod import Grid, Helpers, Models
 from mod.OccupancyMap import OccupancyMap
@@ -51,8 +57,19 @@ MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 # %%
 window_size = 64
 
-trainset = DiscreteDirectionalDataset(occ, dyn_train, window_size)
-valset = DiscreteDirectionalDataset(occ, dyn_test, window_size)
+transform = transforms.Compose(
+    [RandomHorizontalFlipPeopleFlow(), RandomVerticalFlipPeopleFlow()]
+)
+
+trainset = DiscreteDirectionalDataset(
+    occupancy=occ,
+    dynamics=dyn_train,
+    window_size=window_size,
+    transform=transform,
+)
+valset = DiscreteDirectionalDataset(
+    occupancy=occ, dynamics=dyn_test, window_size=window_size
+)
 
 net = DiscreteDirectional(window_size)
 
@@ -86,7 +103,7 @@ trainer = Trainer(
 
 # %% Train
 
-trainer.train(epochs=5)
+trainer.train(epochs=100)
 
 # %% Save network weights
 
@@ -98,9 +115,22 @@ trainer.save(path)
 path = "./people_net.pth"
 trainer.load(path)
 
+# %% Visualize output on random input
+
+inputs = (
+    random_input(size=32, p_occupied=0.1, device=device)
+    .cpu()
+    .numpy()[0, 0, ...]
+)
+outputs = estimate_dynamics(net, inputs, device=device, batch_size=32)
+
+plot_quivers(inputs * 255, outputs, dpi=1000)
+
 # %% Build the full dynamic map
 
-dyn_map = estimate_dynamics(net, occ, device=device, batch_size=500)
+dyn_map = estimate_dynamics(net, occ, device=device, batch_size=100)
+
+# %% Save full dynamic map
 np.save("map.npy", dyn_map)
 
 # %% Load a saved full dynamic map

@@ -133,9 +133,18 @@ def random_input(
     return a.type(torch.float)
 
 
+def flip_directions(
+    dynamics: np.ndarray, dirA: Direction, dirB: Direction
+) -> np.ndarray:
+    temp = dynamics[dirA]
+    dynamics[dirA] = dynamics[dirB]
+    dynamics[dirB] = temp
+    return dynamics
+
+
 def estimate_dynamics(
     net: PeopleFlow,
-    occupancy: OccupancyMap,
+    occupancy: Union[OccupancyMap, np.ndarray],
     batch_size: int = 4,
     device: Optional[torch.device] = None,
 ) -> np.ndarray:
@@ -145,7 +154,10 @@ def estimate_dynamics(
     net.to(device)
     net.eval()
 
-    bin_map = np.array(occupancy.binary_map)
+    if isinstance(occupancy, OccupancyMap):
+        bin_map = np.array(occupancy.binary_map)
+    else:
+        bin_map = occupancy
     h, w = bin_map.shape
     channels = 1
     padded_map = np.pad(bin_map, window.pad_amount)
