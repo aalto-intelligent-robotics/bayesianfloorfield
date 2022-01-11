@@ -80,8 +80,10 @@ class PeopleFlowDataset(Dataset):
     ) -> None:
         super().__init__()
         self.occupancy = occupancy.binary_map
-        self.dynamics = dynamics
+        self.map_origin = occupancy.origin
         self.map_size = self.occupancy.size
+        self.dynamics = dynamics
+        self.res_ratio = occupancy.resolution / (dynamics.resolution / 1000)
         self.output_channels = output_channels
         self.window = Window(window_size)
         self.indeces = self.get_indeces()
@@ -98,8 +100,13 @@ class PeopleFlowDataset(Dataset):
         self,
         center: RowColumnPair,
     ) -> Tuple[np.ndarray, np.ndarray]:
+        center_occupancy = (
+            self.map_size[1]
+            - int((center[0] + self.map_origin[1]) / self.res_ratio),
+            int((center[1] - self.map_origin[0]) / self.res_ratio),
+        )
         input = np.asarray(
-            self.occupancy.crop(self.window.corners(center)),
+            self.occupancy.crop(self.window.corners(center_occupancy)),
             "float",
         )
         assert (

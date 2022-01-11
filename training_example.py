@@ -1,3 +1,6 @@
+# %% Some magic
+# ! %load_ext autoreload
+# ! %autoreload 2
 # %% Imports
 
 import logging
@@ -115,6 +118,13 @@ trainer.save(path)
 path = "./people_net.pth"
 trainer.load(path)
 
+# %% Visualize a random groundtruth
+
+image, gt = trainset.get_by_center((40, 20))
+output = np.zeros((window_size, window_size, 8))
+output[32, 32, :] = gt
+
+plot_quivers(image[0] * 255, output, dpi=1000)
 # %% Visualize output on random input
 
 inputs = (

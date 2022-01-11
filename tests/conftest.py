@@ -16,9 +16,10 @@ from torch.utils.data import DataLoader
 def occupancy() -> OccupancyMap:
     occupancy = mock.MagicMock(spec=OccupancyMap)
     map = Image.new("L", (2, 2))
-    pixels = map.load()
-    pixels[1, 0] = 1
-    occupancy.configure_mock(**{"binary_map": map})
+    map.putpixel((1, 0), 1)
+    occupancy.configure_mock(
+        **{"resolution": 1, "binary_map": map, "origin": [0, 2, 0]}
+    )
     return occupancy
 
 
@@ -30,7 +31,9 @@ def grid() -> Grid:
     cell1.bins[cell1.directions[0]]["probability"] = 1.0 / 2
     cell1.bins[cell1.directions[5]]["probability"] = 1.0 / 2
     cell2.bins[cell1.directions[1]]["probability"] = 1.0
-    grid.configure_mock(**{"cells": {(0, 0): cell1, (0, 1): cell2}})
+    grid.configure_mock(
+        **{"resolution": 1000, "cells": {(0, 0): cell1, (0, 1): cell2}}
+    )
     return grid
 
 
