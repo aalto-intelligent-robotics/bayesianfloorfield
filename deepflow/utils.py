@@ -6,6 +6,7 @@ from typing import Optional, Sequence, Set, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn.functional as F
 from mod.OccupancyMap import OccupancyMap
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -56,9 +57,9 @@ def plot_dir(
     plt.title(f"Direction: {dir.name}")
     plt.imshow(dynamics[..., dir.value], vmin=0, vmax=1, cmap=cmap)
     plt.imshow(
-        np.ma.masked_where(np.array(binary_map) < 255, binary_map),
+        np.ma.masked_where(np.array(binary_map) < 0.5, binary_map),
         vmin=0,
-        vmax=255,
+        vmax=1,
         cmap="gray",
         interpolation="none",
     )
@@ -108,9 +109,9 @@ def plot_quivers(
     V = dyn * v
     plt.quiver(X, Y, U, V, units="dots", minshaft=2, scale_units="xy", scale=2)
     plt.imshow(
-        np.ma.masked_where(occ < 255, 255 - occ),
+        1 - occ,
         vmin=0,
-        vmax=255,
+        vmax=1,
         cmap="gray",
         interpolation="none",
     )
@@ -243,7 +244,9 @@ class Trainer:
 
         # forward
         outputs = self.net(inputs)
-        loss = self.criterion(outputs[..., self.cr, self.cc], groundtruth)
+        loss = self.criterion(
+            F.log_softmax(outputs[..., self.cr, self.cc], dim=1), groundtruth
+        )
 
         # backward + optimize if training
         if training:

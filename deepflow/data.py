@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from mod.Grid import Grid
 from mod.OccupancyMap import OccupancyMap
+from PIL import Image
 from torch.utils.data import Dataset
 
 from deepflow.utils import Direction, RowColumnPair, Window, flip_directions
@@ -76,6 +77,7 @@ class PeopleFlowDataset(Dataset):
         dynamics: Grid,
         window_size: int,
         output_channels: int,
+        scale: int = 1,
         transform: Optional[Callable] = None,
     ) -> None:
         super().__init__()
@@ -85,9 +87,11 @@ class PeopleFlowDataset(Dataset):
         self.dynamics = dynamics
         self.res_ratio = occupancy.resolution / (dynamics.resolution / 1000)
         self.output_channels = output_channels
-        self.window = Window(window_size)
+        self.window_size = window_size
         self.indeces = self.get_indeces()
+        self.scale = scale
         self.transform = transform
+        self.window = Window(window_size * scale)
 
     def __len__(self) -> int:
         return len(self.indeces)
@@ -105,13 +109,20 @@ class PeopleFlowDataset(Dataset):
             - int((center[0] + self.map_origin[1]) / self.res_ratio),
             int((center[1] - self.map_origin[0]) / self.res_ratio),
         )
-        input = np.asarray(
-            self.occupancy.crop(self.window.corners(center_occupancy)),
-            "float",
+        input = (
+            np.asarray(
+                self.occupancy.crop(
+                    self.window.corners(center_occupancy)
+                ).resize(
+                    (self.window_size, self.window_size), Image.ANTIALIAS
+                ),
+                "float",
+            )
+            / 255.0
         )
         assert (
-            input.shape[0] == self.window.size
-            and input.shape[1] == self.window.size
+            input.shape[0] == self.window_size
+            and input.shape[1] == self.window_size
         )
         output = self._dynamics(center)
         sample = (np.expand_dims(input, 0), output)
@@ -133,6 +144,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         occupancy: OccupancyMap,
         dynamics: Grid,
         window_size: int = 32,
+        scale: int = 1,
         transform: Optional[Callable] = None,
     ) -> None:
         super().__init__(
@@ -140,6 +152,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
             dynamics,
             window_size,
             output_channels=8,
+            scale=scale,
             transform=transform,
         )
 
@@ -157,6 +170,7 @@ class ConditionalDirectionalDataset(PeopleFlowDataset):
         occupancy: OccupancyMap,
         dynamics: Grid,
         window_size: int = 32,
+        scale: int = 1,
         transform: Optional[Callable] = None,
     ) -> None:
         super().__init__(
@@ -164,6 +178,7 @@ class ConditionalDirectionalDataset(PeopleFlowDataset):
             dynamics,
             window_size,
             output_channels=64,
+            scale=scale,
             transform=transform,
         )
 

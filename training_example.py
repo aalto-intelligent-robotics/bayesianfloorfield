@@ -39,10 +39,6 @@ logging.basicConfig(level=logging.INFO)
 sys.modules["Grid"] = Grid
 sys.modules["Models"] = Models
 
-# Writer will output to ./runs/ directory by default
-writer = SummaryWriter()
-
-
 _, local = Helpers.get_local_settings(
     json_path="mod/config/local_settings.json",
     schema_path="mod/config/local_settings_schema.json",
@@ -59,7 +55,9 @@ MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 
 # %%
 window_size = 64
+scale = 2
 
+# transform = None
 transform = transforms.Compose(
     [RandomHorizontalFlipPeopleFlow(), RandomVerticalFlipPeopleFlow()]
 )
@@ -68,6 +66,7 @@ trainset = DiscreteDirectionalDataset(
     occupancy=occ,
     dynamics=dyn_train,
     window_size=window_size,
+    scale=scale,
     transform=transform,
 )
 valset = DiscreteDirectionalDataset(
@@ -75,6 +74,10 @@ valset = DiscreteDirectionalDataset(
 )
 
 net = DiscreteDirectional(window_size)
+
+id_string = f"_w{window_size}_s{scale}{'_t' if transform is not None else ''}"
+# Writer will output to ./runs/ directory by default
+writer = SummaryWriter(comment=id_string)
 
 # %% Training context
 
@@ -90,9 +93,8 @@ valloader = DataLoader(
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-criterion = torch.nn.MSELoss()
+criterion = torch.nn.KLDivLoss(reduction="batchmean")
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
 
 trainer = Trainer(
     net=net,
@@ -110,21 +112,30 @@ trainer.train(epochs=100)
 
 # %% Save network weights
 
-path = "./people_net.pth"
+path = f"./people_net{id_string}.pth"
 trainer.save(path)
 
 # %% Load network weights
 
-path = "./people_net.pth"
+path = f"./people_net{id_string}.pth"
 trainer.load(path)
 
-# %% Visualize a random groundtruth
+# %% Visualize a groundtruth
 
 image, gt = trainset.get_by_center((40, 20))
-output = np.zeros((window_size, window_size, 8))
-output[32, 32, :] = gt
+outputs = np.zeros((window_size, window_size, 8))
+outputs[32, 32, :] = gt
 
-plot_quivers(image[0] * 255, output, dpi=1000)
+plot_quivers(image[0], outputs, dpi=1000)
+
+# %% Visualize a sample output
+
+image, _ = trainset.get_by_center((40, 20))
+
+outputs = estimate_dynamics(net, image[0], device=device, batch_size=32)
+
+plot_quivers(image[0], outputs, dpi=1000)
+
 # %% Visualize output on random input
 
 inputs = (
@@ -134,7 +145,7 @@ inputs = (
 )
 outputs = estimate_dynamics(net, inputs, device=device, batch_size=32)
 
-plot_quivers(inputs * 255, outputs, dpi=1000)
+plot_quivers(inputs, outputs, dpi=1000)
 
 # %% Build the full dynamic map
 
