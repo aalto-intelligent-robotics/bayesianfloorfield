@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 def occupancy() -> OccupancyMap:
     occupancy = mock.MagicMock(spec=OccupancyMap)
     map = Image.new("L", (2, 2))
-    map.putpixel((1, 0), 1)
+    map.putpixel((1, 0), 255)
     occupancy.configure_mock(
         **{"resolution": 1, "binary_map": map, "origin": [0, 2, 0]}
     )
