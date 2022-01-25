@@ -8,7 +8,7 @@ from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.utils.data import Dataset
 
-from deepflow.utils import Direction, RowColumnPair, Window, flip_directions
+from deepflow.utils import Direction, RowColumnPair, Window, switch_directions
 
 
 class _RandomFlipPeopleFlow(torch.nn.Module):
@@ -38,7 +38,7 @@ class _RandomFlipPeopleFlow(torch.nn.Module):
         sz = dynamics.shape
         if sz == (8,):
             for dirA, dirB in self.directions:
-                dynamics = flip_directions(dynamics, dirA, dirB)
+                dynamics = switch_directions(dynamics, dirA, dirB)
         elif sz == (64,):
             raise NotImplementedError
         else:
@@ -68,6 +68,43 @@ class RandomVerticalFlipPeopleFlow(_RandomFlipPeopleFlow):
             (Direction.NE, Direction.SE),
         ]
         super().__init__(axis=1, directions=directions, p=p)
+
+
+class RandomRotationPeopleFlow(torch.nn.Module):
+    def __init__(
+        self, p: float = 0.5, angles_p: Sequence[float] = [1 / 3, 1 / 3, 1 / 3]
+    ):
+        assert p >= 0 and p <= 1
+        assert len(angles_p) == 3 and np.sum(angles_p) == 1
+        super().__init__()
+        self.p = p
+        self.angles_p = angles_p
+        self.axes = (1, 2)
+
+    def forward(
+        self, data: tuple[np.ndarray, np.ndarray]
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if torch.rand(1) < self.p:
+            num_rotations = np.random.choice([1, 2, 3], p=self.angles_p)
+            occ, dyn = data
+            occ = np.rot90(occ, k=num_rotations, axes=self.axes).copy()
+            dyn = self._rotate_dynamics(dyn, k=num_rotations)
+            data = (occ, dyn)
+        return data
+
+    def _rotate_dynamics(self, dynamics: np.ndarray, k: int = 1) -> np.ndarray:
+        sz = dynamics.shape
+        if sz == (8,):
+            dynamics = np.take(dynamics, range(-2 * k, 8 - 2 * k), mode="wrap")
+        elif sz == (64,):
+            raise NotImplementedError
+        else:
+            raise NotImplementedError(
+                f"Received wrong shape: {sz}.\n"
+                "This transformation can only be applied to directional or "
+                "conditional directional models"
+            )
+        return dynamics
 
 
 class PeopleFlowDataset(Dataset):

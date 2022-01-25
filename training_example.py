@@ -17,6 +17,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from deepflow.data import (
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,
+    RandomRotationPeopleFlow,
     RandomVerticalFlipPeopleFlow,
 )
 from deepflow.nets import DiscreteDirectional
@@ -59,7 +60,11 @@ scale = 2
 
 # transform = None
 transform = transforms.Compose(
-    [RandomHorizontalFlipPeopleFlow(), RandomVerticalFlipPeopleFlow()]
+    [
+        RandomRotationPeopleFlow(),
+        RandomHorizontalFlipPeopleFlow(),
+        RandomVerticalFlipPeopleFlow(),
+    ]
 )
 
 trainset = DiscreteDirectionalDataset(
@@ -93,8 +98,10 @@ valloader = DataLoader(
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+# criterion = torch.nn.MSELoss()
 criterion = torch.nn.KLDivLoss(reduction="batchmean")
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+# optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.Adam(net.parameters(), lr=0.001)
 
 trainer = Trainer(
     net=net,
@@ -124,9 +131,9 @@ trainer.load(path)
 
 image, gt = trainset.get_by_center((40, 20))
 outputs = np.zeros((window_size, window_size, 8))
-outputs[32, 32, :] = gt
+outputs[window_size // 2, window_size // 2, :] = gt
 
-plot_quivers(image[0], outputs, dpi=1000)
+plot_quivers(image[0] >= 1 / scale, outputs, dpi=1000)
 
 # %% Visualize a sample output
 
@@ -134,7 +141,7 @@ image, _ = trainset.get_by_center((40, 20))
 
 outputs = estimate_dynamics(net, image[0], device=device, batch_size=32)
 
-plot_quivers(image[0], outputs, dpi=1000)
+plot_quivers(image[0] >= 1 / scale, outputs, dpi=1000)
 
 # %% Visualize output on random input
 

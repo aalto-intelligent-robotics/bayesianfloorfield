@@ -8,7 +8,7 @@ from deepflow.utils import (
     Trainer,
     Window,
     estimate_dynamics,
-    flip_directions,
+    switch_directions,
     random_input,
     scale_quivers,
 )
@@ -47,9 +47,9 @@ def test_random_input(p_occupied: float, expected: np.ndarray):
         (Direction.N, Direction.S, [1, 2, 7, 4, 5, 6, 3, 8]),
     ],
 )
-def test_flip_directions(dirA: Direction, dirB: Direction, expected: list):
+def test_switch_directions(dirA: Direction, dirB: Direction, expected: list):
     a = np.array([1, 2, 3, 4, 5, 6, 7, 8])
-    assert (flip_directions(a, dirA, dirB) == np.array(expected)).all()
+    assert (switch_directions(a, dirA, dirB) == np.array(expected)).all()
 
 
 def test_window_size():

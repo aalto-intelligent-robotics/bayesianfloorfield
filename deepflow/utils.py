@@ -134,7 +134,7 @@ def random_input(
     return a.type(torch.float)
 
 
-def flip_directions(
+def switch_directions(
     dynamics: np.ndarray, dirA: Direction, dirB: Direction
 ) -> np.ndarray:
     temp = dynamics[dirA]

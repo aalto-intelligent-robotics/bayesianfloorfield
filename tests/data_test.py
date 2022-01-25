@@ -6,6 +6,7 @@ import torchvision.transforms as transforms
 from deepflow.data import (
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,
+    RandomRotationPeopleFlow,
     RandomVerticalFlipPeopleFlow,
 )
 
@@ -58,6 +59,24 @@ def test_data(dataset: DiscreteDirectionalDataset):
         "groundtruth_expected_1",
     ],
     [
+        (
+            RandomRotationPeopleFlow(p=1, angles_p=[1, 0, 0]),
+            np.array([[[0.0, 1.0], [0.0, 0.0]]]),
+            np.array([0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]),
+            np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]),
+        ),
+        (
+            RandomRotationPeopleFlow(p=1, angles_p=[0, 1, 0]),
+            np.array([[[1.0, 0.0], [0.0, 0.0]]]),
+            np.array([0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]),
+        ),
+        (
+            RandomRotationPeopleFlow(p=1, angles_p=[0, 0, 1]),
+            np.array([[[0.0, 0.0], [1.0, 0.0]]]),
+            np.array([0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]),
+        ),
         (
             RandomHorizontalFlipPeopleFlow(p=1),
             np.array([[[0.0, 0.0], [1.0, 0.0]]]),
