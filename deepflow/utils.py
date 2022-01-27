@@ -243,10 +243,10 @@ class Trainer:
             self.optimizer.zero_grad()
 
         # forward
-        outputs = self.net(inputs)
-        loss = self.criterion(
-            F.log_softmax(outputs[..., self.cr, self.cc], dim=1), groundtruth
-        )
+        outputs = self.net(inputs)[..., self.cr, self.cc]
+        if isinstance(self.criterion, torch.nn.KLDivLoss):
+            outputs = F.log_softmax(outputs, dim=1)
+        loss = self.criterion(outputs, groundtruth)
 
         # backward + optimize if training
         if training:

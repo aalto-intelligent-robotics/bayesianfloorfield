@@ -45,8 +45,8 @@ _, local = Helpers.get_local_settings(
     schema_path="mod/config/local_settings_schema.json",
 )
 occ_path = local["dataset_folder"] + "localization_grid.yaml"
-train_path = local["pickle_folder"] + "discrete_directional.p"
-test_path = local["pickle_folder"] + "discrete_directional_2_small.p"
+train_path = local["pickle_folder"] + "discrete_directional_2.p"
+test_path = local["pickle_folder"] + "discrete_directional.p"
 
 occ = OccupancyMap.from_yaml(occ_path)
 dyn_train: Grid.Grid = pickle.load(open(train_path, "rb"))
@@ -56,7 +56,7 @@ MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 
 # %%
 window_size = 64
-scale = 2
+scale = 16
 
 # transform = None
 transform = transforms.Compose(
@@ -67,6 +67,8 @@ transform = transforms.Compose(
     ]
 )
 
+id_string = f"_w{window_size}_s{scale}{'_t' if transform is not None else ''}"
+
 trainset = DiscreteDirectionalDataset(
     occupancy=occ,
     dynamics=dyn_train,
@@ -75,14 +77,10 @@ trainset = DiscreteDirectionalDataset(
     transform=transform,
 )
 valset = DiscreteDirectionalDataset(
-    occupancy=occ, dynamics=dyn_test, window_size=window_size
+    occupancy=occ, dynamics=dyn_test, window_size=window_size, scale=scale
 )
 
 net = DiscreteDirectional(window_size)
-
-id_string = f"_w{window_size}_s{scale}{'_t' if transform is not None else ''}"
-# Writer will output to ./runs/ directory by default
-writer = SummaryWriter(comment=id_string)
 
 # %% Training context
 
@@ -98,10 +96,13 @@ valloader = DataLoader(
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# criterion = torch.nn.MSELoss()
-criterion = torch.nn.KLDivLoss(reduction="batchmean")
+criterion = torch.nn.MSELoss()
+# criterion = torch.nn.KLDivLoss(reduction="batchmean")
 # optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 optimizer = optim.Adam(net.parameters(), lr=0.001)
+
+# Writer will output to ./runs/ directory by default
+writer = SummaryWriter(comment=id_string)
 
 trainer = Trainer(
     net=net,
@@ -137,7 +138,7 @@ plot_quivers(image[0] >= 1 / scale, outputs, dpi=1000)
 
 # %% Visualize a sample output
 
-image, _ = trainset.get_by_center((40, 20))
+image, _ = valset.get_by_center((40, 20))
 
 outputs = estimate_dynamics(net, image[0], device=device, batch_size=32)
 
@@ -159,10 +160,10 @@ plot_quivers(inputs, outputs, dpi=1000)
 dyn_map = estimate_dynamics(net, occ, device=device, batch_size=100)
 
 # %% Save full dynamic map
-np.save("map.npy", dyn_map)
+np.save(f"map{id_string}.npy", dyn_map)
 
 # %% Load a saved full dynamic map
-dyn_map = np.load("map.npy")
+dyn_map = np.load(f"map{id_string}.npy")
 
 # %% Visualize
 
