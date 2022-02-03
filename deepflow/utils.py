@@ -35,6 +35,10 @@ class Direction(IntEnum):
     def rad(self) -> float:
         return self.value * 2 * np.pi / 8
 
+    def range(self) -> tuple[float, float]:
+        a = self.rad()
+        return (a - np.pi / 8 if a > 0 else 15 / 8 * np.pi, a + np.pi / 8)
+
     def u(self) -> float:
         return np.cos(self.rad())
 

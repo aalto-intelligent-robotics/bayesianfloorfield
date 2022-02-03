@@ -8,12 +8,31 @@ from deepflow.utils import (
     Trainer,
     Window,
     estimate_dynamics,
-    switch_directions,
     random_input,
     scale_quivers,
+    switch_directions,
 )
 from mod.OccupancyMap import OccupancyMap
 from torch import device, float32
+
+
+@pytest.mark.parametrize(
+    ["dir", "rad", "range"],
+    [
+        (Direction.E, 0, (15 / 8, 1 / 8)),
+        (Direction.NE, 1 / 4, (1 / 8, 3 / 8)),
+        (Direction.N, 1 / 2, (3 / 8, 5 / 8)),
+        (Direction.NW, 3 / 4, (5 / 8, 7 / 8)),
+        (Direction.W, 1, (7 / 8, 9 / 8)),
+        (Direction.SW, 5 / 4, (9 / 8, 11 / 8)),
+        (Direction.S, 3 / 2, (11 / 8, 13 / 8)),
+        (Direction.SE, 7 / 4, (13 / 8, 15 / 8)),
+    ],
+)
+def test_directions(dir: Direction, rad: float, range: tuple[float, float]):
+    assert dir.rad() == pytest.approx(np.pi * rad)
+    assert dir.range()[0] == pytest.approx(np.pi * range[0])
+    assert dir.range()[1] == pytest.approx(np.pi * range[1])
 
 
 def test_scale_quivers():
