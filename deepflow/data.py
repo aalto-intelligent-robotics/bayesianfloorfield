@@ -195,9 +195,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
         bins = self.dynamics.cells[center].bins
-        prob: Sequence[float] = [
-            bins[d.rad()]["probability"] for d in Direction
-        ]
+        prob: Sequence[float] = [bins[d.rad]["probability"] for d in Direction]
         return np.array(prob)
 
 
@@ -222,7 +220,7 @@ class ConditionalDirectionalDataset(PeopleFlowDataset):
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
         bins = self.dynamics.cells[center].model
         prob = [
-            bins[(sd.rad(), ed.rad())]["probability"]
+            bins[(sd.rad, ed.rad)]["probability"]
             for sd in Direction
             for ed in Direction
         ]

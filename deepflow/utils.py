@@ -21,6 +21,8 @@ RowColumnPair = Tuple[int, int]
 DataPoint = Tuple[torch.Tensor, torch.Tensor]
 Loss = Union[torch.nn.MSELoss, torch.nn.KLDivLoss]
 
+_2PI = np.pi * 2
+
 
 class Direction(IntEnum):
     E = 0
@@ -32,21 +34,46 @@ class Direction(IntEnum):
     S = 6
     SE = 7
 
+    @property
     def rad(self) -> float:
-        return self.value * 2 * np.pi / 8
+        return self.value * _2PI / 8
 
+    @property
     def range(self) -> tuple[float, float]:
-        a = self.rad()
-        return (a - np.pi / 8 if a > 0 else 15 / 8 * np.pi, a + np.pi / 8)
+        a = self.rad
+        return ((a - np.pi / 8) % _2PI, a + np.pi / 8)
 
+    @property
     def u(self) -> float:
-        return np.cos(self.rad())
+        return np.cos(self.rad)
 
+    @property
     def v(self) -> float:
-        return np.sin(self.rad())
+        return np.sin(self.rad)
 
+    @property
     def uv(self) -> tuple[float, float]:
-        return (self.u(), self.v())
+        return (self.u, self.v)
+
+    def contains(self, rad: float) -> bool:
+        a = rad % _2PI
+        s, e = self.range
+        return (a - s) % _2PI < (e - s) % _2PI
+
+    @classmethod
+    def from_rad(cls, rad: float) -> "Direction":
+        for dir in Direction:
+            if dir.contains(rad):
+                return dir
+        raise ValueError(f"{rad} cannot be represented as Direction")
+
+    @classmethod
+    def from_points(
+        cls, p1: tuple[float, float], p2: tuple[float, float]
+    ) -> "Direction":
+        assert p1 != p2
+        rad = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])
+        return cls.from_rad(rad)
 
 
 def plot_dir(
@@ -107,8 +134,8 @@ def plot_quivers(
     YX = np.mgrid[0 : occ.shape[0], 0 : occ.shape[1]]
     Y: list[list[int]] = [[y] * 8 for y in YX[0].flatten()]
     X: list[list[int]] = [[x] * 8 for x in YX[1].flatten()]
-    u = [d.u() for d in Direction]
-    v = [d.v() for d in Direction]
+    u = [d.u for d in Direction]
+    v = [d.v for d in Direction]
     U = dyn * u
     V = dyn * v
     plt.quiver(X, Y, U, V, units="dots", minshaft=2, scale_units="xy", scale=2)
