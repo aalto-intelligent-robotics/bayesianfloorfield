@@ -11,16 +11,15 @@ def track2pixels(track: np.ndarray, occupancy: OccupancyMap) -> np.ndarray:
     o = occupancy.origin
     s = occupancy.map.size
     pixels = np.empty((2, track.shape[1]))
-    pixels[0, :] = (track[0, :] - o[0]) / r
-    pixels[1, :] = s[1] - 1 - (track[1, :] - o[1]) / r
+    pixels[0, :] = s[1] - (track[1, :] - o[1]) / r
+    pixels[1, :] = (track[0, :] - o[0]) / r
     return pixels
 
 
 def pixels2grid(
-    pixels: np.ndarray, grid_resolution: float, occupancy: OccupancyMap
+    pixels: np.ndarray, grid_resolution: float, occupancy_resolution: float
 ) -> np.ndarray:
-    r = occupancy.resolution
-    ratio = r / grid_resolution
+    ratio = occupancy_resolution / grid_resolution
     cell_indeces = (pixels * ratio).astype(int)
     grid = []
     last_cell = np.array([np.nan, np.nan])
@@ -50,17 +49,17 @@ def track_likelihood(
     window_size: int,
     scale: int,
     net: DiscreteDirectional,
-    device: torch.device,
+    device: torch.device = torch.device("cpu"),
 ) -> float:
     window = Window(window_size * scale)
     net.to(device)
     net.eval()
     like = 0
     for i in range(track.shape[1] - 1):
-        x, y = track[0:2, i]
-        next_x, next_y = track[0:2, i + 1]
-        center = (int(y), int(x))
-        dir = Direction.from_points((x, y), (next_x, next_y))
+        row, col = track[0:2, i]
+        next_row, next_col = track[0:2, i + 1]
+        center = (int(row), int(col))
+        dir = Direction.from_points((col, row), (next_col, next_row))
         crop = (
             np.asarray(
                 occupancy.binary_map.crop(window.corners(center)).resize(

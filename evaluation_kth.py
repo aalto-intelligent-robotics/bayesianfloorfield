@@ -12,8 +12,8 @@ import scipy.io as sio
 import torch
 from PIL import Image
 
+from deepflow.evaluation import pixels2grid, track2pixels, track_likelihood
 from deepflow.nets import DiscreteDirectional
-from deepflow.evaluation import track2pixels, pixels2grid, track_likelihood
 from deepflow.utils import Window, estimate_dynamics, plot_quivers
 from mod.OccupancyMap import OccupancyMap
 
@@ -81,12 +81,12 @@ plt.imshow(
 )
 for id in ids:
     p = track2pixels(tracks[id], occupancy)
-    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy)
-    X = t[0, :]
-    Y = t[1, :]
-    U = t[2 + 0, :] * GRID_SCALE + GRID_SCALE / 2
-    V = t[2 + 1, :] * GRID_SCALE + GRID_SCALE / 2
-    plt.plot(p[0, :], p[1, :], "x-", markersize=0.1, linewidth=0.1)
+    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
+    X = t[1, :]
+    Y = t[0, :]
+    U = t[3, :] * GRID_SCALE + GRID_SCALE / 2
+    V = t[2, :] * GRID_SCALE + GRID_SCALE / 2
+    plt.plot(p[1, :], p[0, :], "x-", markersize=0.1, linewidth=0.1)
     plt.plot(X, Y, "o", markersize=0.1, linewidth=0.1)
     plt.grid(True, linewidth=0.1)
     plt.xticks(range(0, occupancy.map.size[0], GRID_SCALE))
@@ -121,7 +121,7 @@ like = 0.0
 skipped = 0
 for id in evaluation_ids:
     p = track2pixels(tracks[id], occupancy)
-    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy)
+    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
         like += track_likelihood(t, occupancy, WINDOW_SIZE, SCALE, net, DEVICE)
     else:
