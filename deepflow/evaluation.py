@@ -1,9 +1,21 @@
+from pathlib import Path
+
 import numpy as np
+import scipy.io as sio
 import torch
+from mod.Grid import Grid
 from PIL import Image
 
-from deepflow.utils import Direction, OccupancyMap, Window
 from deepflow.nets import DiscreteDirectional
+from deepflow.utils import Direction, OccupancyMap, Window
+
+
+def convert_matlab(track_path: Path) -> np.ndarray:
+    return sio.loadmat(track_path, squeeze_me=True)["dataTrajectoryNoIDCell"]
+
+
+def convert_grid(grid: Grid) -> np.ndarray:
+    raise NotImplementedError
 
 
 def track2pixels(track: np.ndarray, occupancy: OccupancyMap) -> np.ndarray:

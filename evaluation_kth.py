@@ -8,11 +8,15 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.io as sio
 import torch
 from PIL import Image
 
-from deepflow.evaluation import pixels2grid, track2pixels, track_likelihood
+from deepflow.evaluation import (
+    convert_matlab,
+    pixels2grid,
+    track2pixels,
+    track_likelihood,
+)
 from deepflow.nets import DiscreteDirectional
 from deepflow.utils import Window, estimate_dynamics, plot_quivers
 from mod.OccupancyMap import OccupancyMap
@@ -32,9 +36,7 @@ DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
 
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
-tracks: np.ndarray = sio.loadmat(TRACKS_DATA, squeeze_me=True)[
-    "dataTrajectoryNoIDCell"
-]
+tracks: np.ndarray = convert_matlab(TRACKS_DATA)
 
 id_string = f"_w{WINDOW_SIZE}_s{SCALE}_t_{EPOCHS}"
 
