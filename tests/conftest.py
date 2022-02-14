@@ -18,7 +18,12 @@ def occupancy() -> OccupancyMap:
     map = Image.new("L", (2, 2))
     map.putpixel((1, 0), 255)
     occupancy.configure_mock(
-        **{"resolution": 1, "binary_map": map, "origin": [0, 2, 0]}
+        **{
+            "resolution": 1,
+            "map": map,
+            "binary_map": map,
+            "origin": [0, 2, 0],
+        }
     )
     return occupancy
 
