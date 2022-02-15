@@ -1,10 +1,12 @@
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import scipy.io as sio
 import torch
 from mod.Grid import Grid
 from PIL import Image
+from tqdm import tqdm
 
 from deepflow.nets import DiscreteDirectional
 from deepflow.utils import Direction, OccupancyMap, Window
@@ -15,7 +17,21 @@ def convert_matlab(track_path: Path) -> np.ndarray:
 
 
 def convert_grid(grid: Grid) -> np.ndarray:
-    raise NotImplementedError
+    columns = ["time", "person_id", "x", "y"]
+    data = pd.DataFrame(columns=columns)
+    for cell in tqdm(grid.cells.values()):
+        data = data.append(cell.data[columns])
+
+    data_grouped = data.groupby("person_id")
+    usable_tracks = data_grouped.size().where(data_grouped.size() > 1).dropna()
+    data_list = np.empty(len(usable_tracks), dtype=object)
+    i = 0
+    for _, person_data in tqdm(data_grouped):
+        if len(person_data) > 1:
+            person_data.sort_values("time", inplace=True)
+            data_list[i] = person_data[["x", "y"]].to_numpy().T / 1000
+            i += 1
+    return data_list
 
 
 def track2pixels(track: np.ndarray, occupancy: OccupancyMap) -> np.ndarray:
@@ -67,11 +83,14 @@ def track_likelihood(
     net.to(device)
     net.eval()
     like = 0
+    sz = occupancy.map.size
     for i in range(track.shape[1] - 1):
         row, col = track[0:2, i]
         next_row, next_col = track[0:2, i + 1]
         center = (int(row), int(col))
-        dir = Direction.from_points((col, row), (next_col, next_row))
+        dir = Direction.from_points(
+            (col, sz[1] - row), (next_col, sz[1] - next_row)
+        )
         crop = (
             np.asarray(
                 occupancy.binary_map.crop(window.corners(center)).resize(

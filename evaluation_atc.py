@@ -3,7 +3,9 @@
 # ! %autoreload 2
 # %% Imports
 
+import pickle
 import random
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -13,19 +15,23 @@ from PIL import Image
 from tqdm import tqdm
 
 from deepflow.evaluation import (
-    convert_matlab,
+    convert_grid,
     pixels2grid,
     track2pixels,
     track_likelihood,
 )
 from deepflow.nets import DiscreteDirectional
 from deepflow.utils import Window, estimate_dynamics, plot_quivers
+from mod import Grid, Models
 from mod.OccupancyMap import OccupancyMap
 
-BASE_PATH = Path("/mnt/hdd/datasets/KTH_track/")
-MAP_METADATA = BASE_PATH / "map.yaml"
-MAP_PGM = BASE_PATH / "map.pgm"
-TRACKS_DATA = BASE_PATH / "dataTrajectoryNoIDCell6251.mat"
+sys.modules["Grid"] = Grid
+sys.modules["Models"] = Models
+
+BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
+MAP_METADATA = BASE_PATH / "localization_grid.yaml"
+MAP_PGM = BASE_PATH / "localization_grid.pgm"
+GRID_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
 
 EPOCHS = 100
 WINDOW_SIZE = 64
@@ -36,8 +42,10 @@ GRID_SCALE = 20
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
 
+grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
-tracks: np.ndarray = convert_matlab(TRACKS_DATA)
+occupancy.origin = [-60.0, -40.0, 0.0]
+tracks: np.ndarray = convert_grid(grid)
 
 id_string = f"_w{WINDOW_SIZE}_s{SCALE}_t_{EPOCHS}"
 
