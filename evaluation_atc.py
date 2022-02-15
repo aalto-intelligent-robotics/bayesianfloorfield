@@ -18,7 +18,8 @@ from deepflow.evaluation import (
     convert_grid,
     pixels2grid,
     track2pixels,
-    track_likelihood,
+    track_likelihood_net,
+    track_likelihood_model,
 )
 from deepflow.nets import DiscreteDirectional
 from deepflow.utils import Window, estimate_dynamics, plot_quivers
@@ -31,7 +32,8 @@ sys.modules["Models"] = Models
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
 MAP_PGM = BASE_PATH / "localization_grid.pgm"
-GRID_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
+GRID_DATA = BASE_PATH / "models" / "discrete_directional.p"
+GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
 
 EPOCHS = 100
 WINDOW_SIZE = 64
@@ -43,6 +45,7 @@ DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
 
 grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
+grid_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 occupancy.origin = [-60.0, -40.0, 0.0]
 tracks: np.ndarray = convert_grid(grid)
@@ -124,6 +127,8 @@ plt.plot(WINDOW_SIZE // 2, WINDOW_SIZE // 2, "o", markersize=0.5)
 
 # %%
 
+print(f"Deep model: people_net{id_string}")
+
 evaluation_ids = range(len(tracks))
 # evaluation_ids = [5101]
 # evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
@@ -135,7 +140,57 @@ for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        like += track_likelihood(t, occupancy, WINDOW_SIZE, SCALE, net, DEVICE)
+        like += track_likelihood_net(
+            t, occupancy, WINDOW_SIZE, SCALE, net, DEVICE
+        )
+    else:
+        skipped += 1
+print(
+    f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
+    f"{like / (len(evaluation_ids)-skipped):.3f} "
+    f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
+)
+
+# %%
+
+print("Traditional model")
+
+evaluation_ids = range(len(tracks))
+# evaluation_ids = [5101]
+# evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
+# evaluation_ids = ids
+
+like = 0.0
+skipped = 0
+for id in tqdm(evaluation_ids):
+    p = track2pixels(tracks[id], occupancy)
+    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
+    if t.shape[1] > 1:
+        like += track_likelihood_model(t, occupancy, grid_train)
+    else:
+        skipped += 1
+print(
+    f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
+    f"{like / (len(evaluation_ids)-skipped):.3f} "
+    f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
+)
+
+# %%
+
+print("Optimal model")
+
+evaluation_ids = range(len(tracks))
+# evaluation_ids = [5101]
+# evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
+# evaluation_ids = ids
+
+like = 0.0
+skipped = 0
+for id in tqdm(evaluation_ids):
+    p = track2pixels(tracks[id], occupancy)
+    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
+    if t.shape[1] > 1:
+        like += track_likelihood_model(t, occupancy, grid)
     else:
         skipped += 1
 print(

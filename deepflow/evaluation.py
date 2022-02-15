@@ -71,7 +71,7 @@ def pixels2grid(
     return np.array(grid).T
 
 
-def track_likelihood(
+def track_likelihood_net(
     track: np.ndarray,
     occupancy: OccupancyMap,
     window_size: int,
@@ -83,14 +83,11 @@ def track_likelihood(
     net.to(device)
     net.eval()
     like = 0
-    sz = occupancy.map.size
     for i in range(track.shape[1] - 1):
         row, col = track[0:2, i]
         next_row, next_col = track[0:2, i + 1]
         center = (int(row), int(col))
-        dir = Direction.from_points(
-            (col, sz[1] - row), (next_col, sz[1] - next_row)
-        )
+        dir = Direction.from_points((col, -row), (next_col, -next_row))
         crop = (
             np.asarray(
                 occupancy.binary_map.crop(window.corners(center)).resize(
@@ -109,5 +106,29 @@ def track_likelihood(
                 .cpu()
                 .numpy()
             )
+        like += pred[dir] / (track.shape[1] - 1)
+    return like
+
+
+def track_likelihood_model(
+    track: np.ndarray, occupancy: OccupancyMap, grid: Grid
+) -> float:
+    like = 0
+    occupancy_top = occupancy.map.size[1] * occupancy.resolution
+    delta_origins = [
+        occupancy.origin[1] - grid.origin[1] / grid.resolution,
+        occupancy.origin[0] - grid.origin[0] / grid.resolution,
+    ]
+    for i in range(track.shape[1] - 1):
+        row, col = track[0:2, i]
+        next_row, next_col = track[0:2, i + 1]
+        dir = Direction.from_points((col, -row), (next_col, -next_row))
+        grid_row = occupancy_top - (track[2, i] + delta_origins[0])
+        grid_col = track[3, i] + delta_origins[1]
+        if (grid_row, grid_col) in grid.cells:
+            cell = grid.cells[(grid_row, grid_col)]
+            pred = [bin["probability"] for bin in cell.bins.values()]
+        else:
+            pred = [1 / 8] * 8
         like += pred[dir] / (track.shape[1] - 1)
     return like

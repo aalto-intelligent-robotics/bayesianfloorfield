@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from deepflow.evaluation import pixels2grid, track2pixels, track_likelihood
+from deepflow.evaluation import pixels2grid, track2pixels, track_likelihood_net
 from mod.OccupancyMap import OccupancyMap
 from deepflow.nets import DiscreteDirectional
 
@@ -29,8 +29,10 @@ def test_pixels2grid():
     assert pixels2grid(pixels, 1, 1) == pytest.approx(expected)
 
 
-def test_track_likelihood(occupancy: OccupancyMap):
+def test_track_likelihood_net(occupancy: OccupancyMap):
     track = np.array([[0.4, 0.5, 0, 0], [0.8, 1.5, 0, 1], [1.7, 1.3, 1, 1]]).T
     net = DiscreteDirectional(window_size=2)
-    like = track_likelihood(track, occupancy, window_size=2, scale=1, net=net)
+    like = track_likelihood_net(
+        track, occupancy, window_size=2, scale=1, net=net
+    )
     assert like >= 0 and like <= 1

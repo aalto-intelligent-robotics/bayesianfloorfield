@@ -16,7 +16,7 @@ from deepflow.evaluation import (
     convert_matlab,
     pixels2grid,
     track2pixels,
-    track_likelihood,
+    track_likelihood_net,
 )
 from deepflow.nets import DiscreteDirectional
 from deepflow.utils import Window, estimate_dynamics, plot_quivers
@@ -116,6 +116,8 @@ plt.plot(WINDOW_SIZE // 2, WINDOW_SIZE // 2, "o", markersize=0.5)
 
 # %%
 
+print(f"Deep model: people_net{id_string}")
+
 evaluation_ids = range(len(tracks))
 # evaluation_ids = [5101]
 # evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
@@ -127,7 +129,9 @@ for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        like += track_likelihood(t, occupancy, WINDOW_SIZE, SCALE, net, DEVICE)
+        like += track_likelihood_net(
+            t, occupancy, WINDOW_SIZE, SCALE, net, DEVICE
+        )
     else:
         skipped += 1
 print(
