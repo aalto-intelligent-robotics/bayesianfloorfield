@@ -114,7 +114,7 @@ def track_likelihood_model(
     track: np.ndarray, occupancy: OccupancyMap, grid: Grid
 ) -> float:
     like = 0
-    occupancy_top = occupancy.map.size[1] * occupancy.resolution
+    occupancy_top = int(occupancy.map.size[1] * occupancy.resolution)
     delta_origins = [
         occupancy.origin[1] - grid.origin[1] / grid.resolution,
         occupancy.origin[0] - grid.origin[0] / grid.resolution,

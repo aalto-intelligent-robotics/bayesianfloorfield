@@ -3,7 +3,9 @@
 # ! %autoreload 2
 # %% Imports
 
+import pickle
 import random
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -17,15 +19,21 @@ from deepflow.evaluation import (
     pixels2grid,
     track2pixels,
     track_likelihood_net,
+    track_likelihood_model,
 )
 from deepflow.nets import DiscreteDirectional
 from deepflow.utils import Window, estimate_dynamics, plot_quivers
+from mod import Grid, Models
 from mod.OccupancyMap import OccupancyMap
+
+sys.modules["Grid"] = Grid
+sys.modules["Models"] = Models
 
 BASE_PATH = Path("/mnt/hdd/datasets/KTH_track/")
 MAP_METADATA = BASE_PATH / "map.yaml"
 MAP_PGM = BASE_PATH / "map.pgm"
 TRACKS_DATA = BASE_PATH / "dataTrajectoryNoIDCell6251.mat"
+GRID_DATA = BASE_PATH / "models" / "discrete_directional_kth.p"
 
 EPOCHS = 100
 WINDOW_SIZE = 64
@@ -36,6 +44,7 @@ GRID_SCALE = 20
 DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
 
+grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 tracks: np.ndarray = convert_matlab(TRACKS_DATA)
 
@@ -132,6 +141,30 @@ for id in tqdm(evaluation_ids):
         like += track_likelihood_net(
             t, occupancy, WINDOW_SIZE, SCALE, net, DEVICE
         )
+    else:
+        skipped += 1
+print(
+    f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
+    f"{like / (len(evaluation_ids)-skipped):.3f} "
+    f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
+)
+
+# %%
+
+print("Optimal model")
+
+evaluation_ids = range(len(tracks))
+# evaluation_ids = [5101]
+# evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
+# evaluation_ids = ids
+
+like = 0.0
+skipped = 0
+for id in tqdm(evaluation_ids):
+    p = track2pixels(tracks[id], occupancy)
+    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
+    if t.shape[1] > 1:
+        like += track_likelihood_model(t, occupancy, grid)
     else:
         skipped += 1
 print(
