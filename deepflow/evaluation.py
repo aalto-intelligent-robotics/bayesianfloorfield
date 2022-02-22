@@ -119,16 +119,20 @@ def track_likelihood_model(
         occupancy.origin[1] - grid.origin[1] / grid.resolution,
         occupancy.origin[0] - grid.origin[0] / grid.resolution,
     ]
+    missing = 0
     for i in range(track.shape[1] - 1):
         row, col = track[0:2, i]
         next_row, next_col = track[0:2, i + 1]
         dir = Direction.from_points((col, -row), (next_col, -next_row))
-        grid_row = occupancy_top - (track[2, i] + delta_origins[0])
+        grid_row = occupancy_top - 1 - (track[2, i] + delta_origins[0])
         grid_col = track[3, i] + delta_origins[1]
         if (grid_row, grid_col) in grid.cells:
             cell = grid.cells[(grid_row, grid_col)]
             pred = [bin["probability"] for bin in cell.bins.values()]
         else:
+            missing += 1
             pred = [1 / 8] * 8
         like += pred[dir] / (track.shape[1] - 1)
+    if missing:
+        print(f"missing: {missing}")
     return like

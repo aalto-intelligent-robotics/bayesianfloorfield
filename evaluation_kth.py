@@ -91,6 +91,15 @@ plt.imshow(
     occupancy.map,
     cmap="gray",
 )
+# Xgrid = [cell[1] * GRID_SCALE + GRID_SCALE / 2 for cell in grid.cells]
+# Ygrid = [
+#    occupancy.map.size[1] - cell[0] * GRID_SCALE + GRID_SCALE / 2
+#    for cell in grid.cells
+# ]
+# plt.scatter(Xgrid, Ygrid, s=0.1)
+plt.grid(True, linewidth=0.1)
+plt.xticks(range(0, occupancy.map.size[0], GRID_SCALE))
+plt.yticks(range(0, occupancy.map.size[1], GRID_SCALE))
 for id in ids:
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
@@ -100,9 +109,6 @@ for id in ids:
     V = t[2, :] * GRID_SCALE + GRID_SCALE / 2
     plt.plot(p[1, :], p[0, :], "x-", markersize=0.1, linewidth=0.1)
     plt.plot(X, Y, "o", markersize=0.1, linewidth=0.1)
-    plt.grid(True, linewidth=0.1)
-    plt.xticks(range(0, occupancy.map.size[0], GRID_SCALE))
-    plt.yticks(range(0, occupancy.map.size[1], GRID_SCALE))
     plt.scatter(U, V, s=0.1)
 
 # %%
