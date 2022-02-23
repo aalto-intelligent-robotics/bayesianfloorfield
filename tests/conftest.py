@@ -37,7 +37,11 @@ def grid() -> Grid:
     cell1.bins[cell1.directions[5]]["probability"] = 1.0 / 2
     cell2.bins[cell1.directions[1]]["probability"] = 1.0
     grid.configure_mock(
-        **{"resolution": 1000, "cells": {(0, 0): cell1, (0, 1): cell2}}
+        **{
+            "resolution": 1000,
+            "cells": {(0, 0): cell1, (0, 1): cell2},
+            "origin": [0, 2, 0],
+        }
     )
     return grid
 
