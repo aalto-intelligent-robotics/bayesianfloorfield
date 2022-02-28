@@ -82,7 +82,7 @@ def plot_dir(
     dir: Direction,
     dpi: int = 300,
     cmap: str = "hot",
-):
+) -> None:
     binary_map = occupancy.binary_map
     plt.figure(dpi=dpi)
     plt.title(f"Direction: {dir.name}")
@@ -104,7 +104,7 @@ def plot_quivers(
     center: Optional[RowColumnPair] = None,
     normalize: bool = True,
     dpi: int = 300,
-):
+) -> None:
     sz = dynamics.shape
     assert occupancy.shape == sz[0:2]
     assert (window_size is None and center is None) or (

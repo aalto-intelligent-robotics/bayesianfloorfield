@@ -11,7 +11,7 @@ from deepflow.data import (
 )
 
 
-def test_vertical_flip():
+def test_vertical_flip() -> None:
     flip = RandomVerticalFlipPeopleFlow(p=1)
     o = [[[1, 1, 0], [0, 1, 0], [0, 0, 1]]]
     o_expected = [[[0, 0, 1], [0, 1, 0], [1, 1, 0]]]
@@ -22,7 +22,7 @@ def test_vertical_flip():
     assert (d_flipped == np.array(d_expected)).all()
 
 
-def test_horizontal_flip():
+def test_horizontal_flip() -> None:
     flip = RandomHorizontalFlipPeopleFlow(p=1)
     o = [[[1, 1, 0], [0, 1, 0], [0, 0, 1]]]
     o_expected = [[[0, 1, 1], [0, 1, 0], [1, 0, 0]]]
@@ -33,7 +33,7 @@ def test_horizontal_flip():
     assert (d_flipped == np.array(d_expected)).all()
 
 
-def test_p_zero_flip():
+def test_p_zero_flip() -> None:
     flip = RandomHorizontalFlipPeopleFlow(p=0)
     o = [[[1, 1, 0], [0, 1, 0], [0, 0, 1]]]
     d = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
@@ -42,7 +42,7 @@ def test_p_zero_flip():
     assert (d_flipped == np.array(d)).all()
 
 
-def test_data(dataset: DiscreteDirectionalDataset):
+def test_data(dataset: DiscreteDirectionalDataset) -> None:
     assert len(dataset) == 2
     image, groundtruth = dataset[1]
     assert image.shape == (1, 2, 2)
@@ -108,7 +108,7 @@ def test_data_transformed(
     image_expected: np.ndarray,
     groundtruth_expected_0: np.ndarray,
     groundtruth_expected_1: np.ndarray,
-):
+) -> None:
     dataset.transform = transform
     assert len(dataset) == 2
     _, groundtruth_0 = dataset[0]
