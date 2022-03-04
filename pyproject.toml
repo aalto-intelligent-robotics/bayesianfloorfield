@@ -12,6 +12,7 @@ exclude = '''
 #### Mypy ####
 # Global options
 [tool.mypy]
+mypy_path = ".stubs"
 exclude = "(octopytorch/|mod/)"
 disallow_any_unimported = true
 disallow_untyped_defs = true
@@ -33,9 +34,7 @@ module = [
   "matplotlib.*",
   "pandas.*",
   "PIL.*",
-  "scipy.*",
   "torchvision.*",
-  "tqdm.*",
 ]
 ignore_missing_imports = true
 
