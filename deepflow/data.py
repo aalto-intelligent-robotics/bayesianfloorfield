@@ -12,13 +12,24 @@ from deepflow.utils import Direction, RowColumnPair, Window, switch_directions
 
 
 class _RandomFlipPeopleFlow(torch.nn.Module):
+    """Random people flow flipping base class"""
+
     def __init__(
         self,
         axis: int,
         directions: list[tuple[Direction, Direction]],
         p: float = 0.5,
     ):
-        assert p >= 0 and p <= 1
+        """Init `_RandomFlipPeopleFlow` class
+
+        Args:
+            axis (int): axis along which to flip the occupancy image
+            directions (list[tuple[Direction, Direction]]): a list of Direction
+            pairs. While flipping the dynamics, for each pairs, the first
+            Direction will be switched with second.
+            p (float, optional): Probability of flipping. Defaults to 0.5.
+        """
+        assert 0 <= p <= 1
         super().__init__()
         self.p = p
         self.axis = axis
@@ -27,6 +38,7 @@ class _RandomFlipPeopleFlow(torch.nn.Module):
     def forward(
         self, data: tuple[np.ndarray, np.ndarray]
     ) -> tuple[np.ndarray, np.ndarray]:
+        """Return the (occupancy, dynamics) tuple `data` flipped"""
         if torch.rand(1) < self.p:
             occ, dyn = data
             occ = np.flip(occ, axis=self.axis).copy()
@@ -35,6 +47,7 @@ class _RandomFlipPeopleFlow(torch.nn.Module):
         return data
 
     def _flip_dynamics(self, dynamics: np.ndarray) -> np.ndarray:
+        """Return `dynamics` with flipped Directions"""
         sz = dynamics.shape
         if sz == (8,):
             for dirA, dirB in self.directions:
@@ -51,7 +64,14 @@ class _RandomFlipPeopleFlow(torch.nn.Module):
 
 
 class RandomHorizontalFlipPeopleFlow(_RandomFlipPeopleFlow):
+    """Performs an horizontal flip on a people flow data sample"""
+
     def __init__(self, p: float = 0.5):
+        """Init `RandomHorizontalFlipPeopleFlow` class
+
+        Args:
+            p (float, optional): Probability of flipping. Defaults to 0.5.
+        """
         directions = [
             (Direction.NW, Direction.NE),
             (Direction.W, Direction.E),
@@ -61,7 +81,14 @@ class RandomHorizontalFlipPeopleFlow(_RandomFlipPeopleFlow):
 
 
 class RandomVerticalFlipPeopleFlow(_RandomFlipPeopleFlow):
+    """Performs a vertical flip on a people flow data sample"""
+
     def __init__(self, p: float = 0.5):
+        """Init `RandomVerticalFlipPeopleFlow` class
+
+        Args:
+            p (float, optional): Probability of flipping. Defaults to 0.5.
+        """
         directions = [
             (Direction.NW, Direction.SW),
             (Direction.N, Direction.S),
@@ -74,7 +101,7 @@ class RandomRotationPeopleFlow(torch.nn.Module):
     def __init__(
         self, p: float = 0.5, angles_p: Sequence[float] = [1 / 3, 1 / 3, 1 / 3]
     ):
-        assert p >= 0 and p <= 1
+        assert 0 <= p <= 1
         assert len(angles_p) == 3 and np.sum(angles_p) == 1
         super().__init__()
         self.p = p
@@ -218,6 +245,7 @@ class ConditionalDirectionalDataset(PeopleFlowDataset):
         )
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
+        # Encodes dynamics in order: [(Start_E, End_E), (Start_E, End_NE), ...]
         bins = self.dynamics.cells[center].model
         prob = [
             bins[(sd.rad, ed.rad)]["probability"]
