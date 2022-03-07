@@ -41,10 +41,10 @@ def test_track_likelihood_net(occupancy: OccupancyMap) -> None:
     like = track_likelihood_net(
         track, occupancy, window_size=2, scale=1, net=net
     )
-    assert like >= 0 and like <= 1
+    assert 0 <= like <= 1
 
 
 def test_track_likelihood_model(occupancy: OccupancyMap, grid: Grid) -> None:
     track = np.array([[0.4, 0.5, 0, 0], [0.8, 1.5, 0, 1], [1.7, 1.3, 1, 1]]).T
     like = track_likelihood_model(track, occupancy, grid)
-    assert like >= 0 and like <= 1
+    assert 0 <= like <= 1
