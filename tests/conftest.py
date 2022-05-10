@@ -31,8 +31,8 @@ def occupancy() -> OccupancyMap:
 @pytest.fixture
 def grid() -> Grid:
     grid = mock.MagicMock(spec=Grid)
-    cell1 = mod.DiscreteDirectional(coords=(0, 0), index=(0, 0))
-    cell2 = mod.DiscreteDirectional(coords=(0, 1), index=(0, 1))
+    cell1 = mod.DiscreteDirectional(coords=(0, 0), index=(0, 0), resolution=1)
+    cell2 = mod.DiscreteDirectional(coords=(0, 1), index=(0, 1), resolution=1)
     cell1.bins[cell1.directions[0]]["probability"] = 1.0 / 2
     cell1.bins[cell1.directions[5]]["probability"] = 1.0 / 2
     cell2.bins[cell1.directions[1]]["probability"] = 1.0
