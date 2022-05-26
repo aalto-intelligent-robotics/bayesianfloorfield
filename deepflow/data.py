@@ -34,6 +34,8 @@ class _RandomFlipPeopleFlow(torch.nn.Module):
         self.p = p
         self.axis = axis
         self.directions = directions
+        self._dirs_from = np.concatenate(directions)
+        self._dirs_to = np.concatenate([(dB, dA) for dA, dB in directions])
 
     def forward(
         self, data: tuple[np.ndarray, np.ndarray]
@@ -50,13 +52,11 @@ class _RandomFlipPeopleFlow(torch.nn.Module):
         """Return `dynamics` with flipped Directions"""
         sz = dynamics.shape
         if sz == (8,):
-            for dirA, dirB in self.directions:
-                dynamics[[dirA, dirB]] = dynamics[[dirB, dirA]]
+            dynamics[self._dirs_from] = dynamics[self._dirs_to]
         elif sz == (64,):
             dynamics = dynamics.reshape((8, 8))
-            for dirA, dirB in self.directions:
-                dynamics[[dirA, dirB]] = dynamics[[dirB, dirA]]
-                dynamics[:, [dirA, dirB]] = dynamics[:, [dirB, dirA]]
+            dynamics[self._dirs_from] = dynamics[self._dirs_to]
+            dynamics[:, self._dirs_from] = dynamics[:, self._dirs_to]
             dynamics = dynamics.reshape(64)
         else:
             raise NotImplementedError(
@@ -128,7 +128,14 @@ class RandomRotationPeopleFlow(torch.nn.Module):
         if sz == (8,):
             dynamics = np.take(dynamics, range(-2 * k, 8 - 2 * k), mode="wrap")
         elif sz == (64,):
-            raise NotImplementedError
+            dynamics = dynamics.reshape((8, 8))
+            dynamics = np.take(
+                dynamics, range(-2 * k, 8 - 2 * k), axis=0, mode="wrap"
+            )
+            dynamics = np.take(
+                dynamics, range(-2 * k, 8 - 2 * k), axis=1, mode="wrap"
+            )
+            dynamics = dynamics.reshape(64)
         else:
             raise NotImplementedError(
                 f"Received wrong shape: {sz}.\n"

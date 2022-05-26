@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torchvision.transforms as transforms
 from deepflow.data import (
+    ConditionalDirectionalDataset,
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,
     RandomRotationPeopleFlow,
@@ -163,3 +164,90 @@ def test_data_transformed(
     assert (image_1 == image_expected).all()
     assert (groundtruth_0 == groundtruth_expected_0).all()
     assert (groundtruth_1 == groundtruth_expected_1).all()
+
+
+@pytest.mark.parametrize(
+    [
+        "transform",
+        "image_expected",
+        "st_0",
+        "st_1",
+        "groundtruth_expected_0",
+        "groundtruth_expected_1",
+    ],
+    [
+        (
+            RandomRotationPeopleFlow(p=1, angles_p=[1, 0, 0]),
+            np.array([[[0.0, 1.0], [0.0, 0.0]]]),
+            2,
+            5,
+            np.array([0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]),
+            np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]),
+        ),
+        (
+            RandomRotationPeopleFlow(p=1, angles_p=[0, 1, 0]),
+            np.array([[[1.0, 0.0], [0.0, 0.0]]]),
+            4,
+            7,
+            np.array([0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]),
+        ),
+        (
+            RandomRotationPeopleFlow(p=1, angles_p=[0, 0, 1]),
+            np.array([[[0.0, 0.0], [1.0, 0.0]]]),
+            6,
+            1,
+            np.array([0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]),
+        ),
+        (
+            RandomHorizontalFlipPeopleFlow(p=1),
+            np.array([[[0.0, 0.0], [1.0, 0.0]]]),
+            4,
+            1,
+            np.array([0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5]),
+            np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]),
+        ),
+        (
+            RandomVerticalFlipPeopleFlow(p=1),
+            np.array([[[0.0, 1.0], [0.0, 0.0]]]),
+            0,
+            5,
+            np.array([0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]),
+        ),
+        (
+            transforms.Compose(
+                [
+                    RandomHorizontalFlipPeopleFlow(p=1),
+                    RandomVerticalFlipPeopleFlow(p=1),
+                ]
+            ),
+            np.array([[[1.0, 0.0], [0.0, 0.0]]]),
+            4,
+            7,
+            np.array([0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0]),
+            np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]),
+        ),
+    ],
+)
+def test_data_transformed_conditional(
+    dataset_conditional: ConditionalDirectionalDataset,
+    transform: Callable,
+    image_expected: np.ndarray,
+    st_0: int,
+    st_1: int,
+    groundtruth_expected_0: np.ndarray,
+    groundtruth_expected_1: np.ndarray,
+) -> None:
+    dataset_conditional.transform = transform
+    assert len(dataset_conditional) == 2
+    _, groundtruth_0 = dataset_conditional[0]
+    image_1, groundtruth_1 = dataset_conditional[1]
+    assert (image_1 == image_expected).all()
+    assert (
+        groundtruth_0[st_0 * 8 : st_0 * 8 + 8] == groundtruth_expected_0
+    ).all()
+    assert (
+        groundtruth_1[st_1 * 8 : st_1 * 8 + 8] == groundtruth_expected_1
+    ).all()
