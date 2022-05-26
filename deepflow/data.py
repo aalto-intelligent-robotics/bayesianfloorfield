@@ -8,7 +8,7 @@ from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.utils.data import Dataset
 
-from deepflow.utils import Direction, RowColumnPair, Window, switch_directions
+from deepflow.utils import Direction, RowColumnPair, Window
 
 
 class _RandomFlipPeopleFlow(torch.nn.Module):
@@ -51,9 +51,13 @@ class _RandomFlipPeopleFlow(torch.nn.Module):
         sz = dynamics.shape
         if sz == (8,):
             for dirA, dirB in self.directions:
-                dynamics = switch_directions(dynamics, dirA, dirB)
+                dynamics[[dirA, dirB]] = dynamics[[dirB, dirA]]
         elif sz == (64,):
-            raise NotImplementedError
+            dynamics = dynamics.reshape((8, 8))
+            for dirA, dirB in self.directions:
+                dynamics[[dirA, dirB]] = dynamics[[dirB, dirA]]
+                dynamics[:, [dirA, dirB]] = dynamics[:, [dirB, dirA]]
+            dynamics = dynamics.reshape(64)
         else:
             raise NotImplementedError(
                 f"Received wrong shape: {sz}.\n"
@@ -252,4 +256,4 @@ class ConditionalDirectionalDataset(PeopleFlowDataset):
             for sd in Direction
             for ed in Direction
         ]
-        return np.array(prob)
+        return np.array(prob, dtype=np.float32)

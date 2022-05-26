@@ -165,15 +165,6 @@ def random_input(
     return a.type(torch.float)
 
 
-def switch_directions(
-    dynamics: np.ndarray, dirA: Direction, dirB: Direction
-) -> np.ndarray:
-    temp = dynamics[dirA]
-    dynamics[dirA] = dynamics[dirB]
-    dynamics[dirB] = temp
-    return dynamics
-
-
 def estimate_dynamics(
     net: PeopleFlow,
     occupancy: Union[OccupancyMap, np.ndarray],
@@ -296,7 +287,7 @@ class Trainer:
             cm = torch.no_grad()
 
         total_loss = 0.0
-        for i, data in enumerate(dataloader, 0):
+        for i, data in enumerate(dataloader):
             with cm:
                 loss = self._step(data, training)
             total_loss += loss
