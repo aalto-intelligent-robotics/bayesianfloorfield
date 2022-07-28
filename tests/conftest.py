@@ -58,10 +58,9 @@ def grid_conditional() -> Grid:
     cell2 = mod.DiscreteConditionalDirectional(
         coords=(0, 1), index=(0, 1), resolution=1
     )
-    dirs = cell1.directions
-    cell1.model[(dirs[0], dirs[0])]["probability"] = 1.0 / 2
-    cell1.model[(dirs[0], dirs[5])]["probability"] = 1.0 / 2
-    cell2.model[(dirs[3], dirs[1])]["probability"] = 1.0
+    cell1.model[(0, 0)]["probability"] = 1.0 / 2
+    cell1.model[(0, 5)]["probability"] = 1.0 / 2
+    cell2.model[(3, 1)]["probability"] = 1.0
     grid.configure_mock(
         **{
             "resolution": 1000,

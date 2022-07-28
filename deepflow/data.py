@@ -259,7 +259,7 @@ class ConditionalDirectionalDataset(PeopleFlowDataset):
         # Encodes dynamics in order: [(Start_E, End_E), (Start_E, End_NE), ...]
         bins = self.dynamics.cells[center].model
         prob = [
-            bins[(sd.rad, ed.rad)]["probability"]
+            bins[(sd, ed)]["probability"]
             for sd in Direction
             for ed in Direction
         ]
