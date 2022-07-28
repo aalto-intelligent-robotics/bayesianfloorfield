@@ -124,8 +124,10 @@ path = f"./people_net{id_string}_{trainer.train_epochs}.pth"
 trainer.save(path)
 
 # %% Load network weights
+# epochs = trainer.train_epochs
+epochs = 100
 
-path = f"./people_net{id_string}_{trainer.train_epochs}.pth"
+path = f"./people_net{id_string}_{epochs}.pth"
 trainer.load(path)
 
 # %% Visualize a groundtruth

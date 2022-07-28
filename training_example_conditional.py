@@ -46,7 +46,7 @@ _, local = Helpers.get_local_settings(
 )
 occ_path = local["dataset_folder"] + "localization_grid.yaml"
 train_path = local["pickle_folder"] + "conditional_directional.p"
-test_path = local["pickle_folder"] + "conditional_directional.p"
+test_path = local["pickle_folder"] + "conditional_directional_2.p"
 
 occ = OccupancyMap.from_yaml(occ_path)
 dyn_train: Grid.Grid = pickle.load(open(train_path, "rb"))
@@ -126,15 +126,22 @@ path = f"./people_net{id_string}_{trainer.train_epochs}.pth"
 trainer.save(path)
 
 # %% Load network weights
+# epochs = trainer.train_epochs
+epochs = 100
 
-path = f"./people_net{id_string}_{trainer.train_epochs}.pth"
+path = f"./people_net{id_string}_{epochs}.pth"
 trainer.load(path)
 
 # %% Visualize a groundtruth
 
 image, gt = trainset.get_by_center((40, 20))
 outputs = np.zeros((window_size, window_size, 8))
-outputs[window_size // 2, window_size // 2, :] = gt
+
+enter_dir = Direction.E
+exit_offset = enter_dir * 8
+outputs[window_size // 2, window_size // 2, :] = gt[
+    exit_offset : exit_offset + 8
+]
 
 plot_quivers(image[0] >= 1 / scale, outputs, dpi=1000)
 
@@ -144,7 +151,13 @@ image, _ = valset.get_by_center((40, 20))
 
 outputs = estimate_dynamics(net, image[0], device=device, batch_size=32)
 
-plot_quivers(image[0] >= 1 / scale, outputs, dpi=1000)
+enter_dir = Direction.E
+exit_offset = enter_dir * 8
+plot_quivers(
+    image[0] >= 1 / scale,
+    outputs[:, :, exit_offset : exit_offset + 8],
+    dpi=1000,
+)
 
 # %% Visualize output on random input
 
@@ -155,7 +168,9 @@ inputs = (
 )
 outputs = estimate_dynamics(net, inputs, device=device, batch_size=32)
 
-plot_quivers(inputs, outputs, dpi=1000)
+enter_dir = Direction.E
+exit_offset = enter_dir * 8
+plot_quivers(inputs, outputs[:, :, exit_offset : exit_offset + 8], dpi=1000)
 
 # %% Build the full dynamic map
 
