@@ -55,7 +55,7 @@ id_string = f"_w{WINDOW_SIZE}_s{SCALE}_t_{EPOCHS}"
 net = DiscreteDirectional(WINDOW_SIZE)
 window = Window(WINDOW_SIZE * SCALE)
 
-path = f"./people_net{id_string}.pth"
+path = f"models/people_net{id_string}.pth"
 checkpoint = torch.load(path)["model_state_dict"]
 net.load_state_dict(checkpoint)
 

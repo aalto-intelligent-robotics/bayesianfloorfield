@@ -120,14 +120,14 @@ trainer.train(epochs=100)
 
 # %% Save network weights
 
-path = f"./people_net{id_string}_{trainer.train_epochs}.pth"
+path = f"models/people_net{id_string}_{trainer.train_epochs}.pth"
 trainer.save(path)
 
 # %% Load network weights
 # epochs = trainer.train_epochs
 epochs = 100
 
-path = f"./people_net{id_string}_{epochs}.pth"
+path = f"models/people_net{id_string}_{epochs}.pth"
 trainer.load(path)
 
 # %% Visualize a groundtruth
@@ -162,10 +162,10 @@ plot_quivers(inputs, outputs, dpi=1000)
 dyn_map = estimate_dynamics(net, occ, device=device, batch_size=100)
 
 # %% Save full dynamic map
-np.save(f"map{id_string}.npy", dyn_map)
+np.save(f"maps/map{id_string}.npy", dyn_map)
 
 # %% Load a saved full dynamic map
-dyn_map = np.load(f"map{id_string}.npy")
+dyn_map = np.load(f"maps/map{id_string}.npy")
 
 # %% Visualize
 
