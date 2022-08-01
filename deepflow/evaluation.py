@@ -149,8 +149,7 @@ def track_likelihood_net_conditional(
                     .numpy()
                 )
             like += pred[previous_dir * 8 + dir] / (track.shape[1] - 2)
-        else:
-            previous_dir = dir
+        previous_dir = dir
     return like
 
 
@@ -205,10 +204,10 @@ def track_likelihood_model_conditional(
                 pred = get_conditional_prob(cell.model)
             else:
                 missing += 1
+                print(f"missing: {(grid_row, grid_col)}")
                 pred = [1 / 64] * 64
             like += pred[previous_dir * 8 + dir] / (track.shape[1] - 2)
-        else:
-            previous_dir = dir
+        previous_dir = dir
     if missing:
         print(f"missing: {missing}")
     return like
