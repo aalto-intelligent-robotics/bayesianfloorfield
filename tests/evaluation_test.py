@@ -4,9 +4,11 @@ from deepflow.evaluation import (
     pixels2grid,
     track2pixels,
     track_likelihood_model,
+    track_likelihood_model_conditional,
     track_likelihood_net,
+    track_likelihood_net_conditional,
 )
-from deepflow.nets import DiscreteDirectional
+from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
 from mod.Grid import Grid
 from mod.OccupancyMap import OccupancyMap
 
@@ -44,7 +46,24 @@ def test_track_likelihood_net(occupancy: OccupancyMap) -> None:
     assert 0 <= like <= 1
 
 
+def test_track_likelihood_net_conditional(occupancy: OccupancyMap) -> None:
+    track = np.array([[0.4, 0.5, 0, 0], [0.8, 1.5, 0, 1], [1.7, 1.3, 1, 1]]).T
+    net = ConditionalDiscreteDirectional(window_size=2)
+    like = track_likelihood_net_conditional(
+        track, occupancy, window_size=2, scale=1, net=net
+    )
+    assert 0 <= like <= 1
+
+
 def test_track_likelihood_model(occupancy: OccupancyMap, grid: Grid) -> None:
     track = np.array([[0.4, 0.5, 0, 0], [0.8, 1.5, 0, 1], [1.7, 1.3, 1, 1]]).T
     like = track_likelihood_model(track, occupancy, grid)
+    assert 0 <= like <= 1
+
+
+def test_track_likelihood_model_conditional(
+    occupancy: OccupancyMap, grid: Grid
+) -> None:
+    track = np.array([[0.4, 0.5, 0, 0], [0.8, 1.5, 0, 1], [1.7, 1.3, 1, 1]]).T
+    like = track_likelihood_model_conditional(track, occupancy, grid)
     assert 0 <= like <= 1
