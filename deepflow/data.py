@@ -4,11 +4,28 @@ from typing import Callable, Optional, Sequence, Tuple
 import numpy as np
 import torch
 from mod.Grid import Grid
+from mod.Models import DiscreteConditionalDirectional, DiscreteDirectional
 from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.utils.data import Dataset
 
 from deepflow.utils import Direction, RowColumnPair, Window
+
+
+def get_directional_prob(model: DiscreteDirectional) -> Sequence[float]:
+    # Encodes dynamics in order: [E, NE, ...]
+    return [model[d.rad]["probability"] for d in Direction]  # type: ignore
+
+
+def get_conditional_prob(
+    model: DiscreteConditionalDirectional,
+) -> Sequence[float]:
+    # Encodes dynamics in order: [(Start_E, End_E), (Start_E, End_NE), ...]
+    return [
+        model[(sd, ed)]["probability"]  # type: ignore
+        for sd in Direction
+        for ed in Direction
+    ]
 
 
 class _RandomFlipPeopleFlow(torch.nn.Module):
@@ -233,8 +250,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
         bins = self.dynamics.cells[center].bins
-        prob: Sequence[float] = [bins[d.rad]["probability"] for d in Direction]
-        return np.array(prob)
+        return np.array(get_directional_prob(bins))
 
 
 class ConditionalDirectionalDataset(PeopleFlowDataset):
@@ -256,11 +272,5 @@ class ConditionalDirectionalDataset(PeopleFlowDataset):
         )
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
-        # Encodes dynamics in order: [(Start_E, End_E), (Start_E, End_NE), ...]
-        bins = self.dynamics.cells[center].model
-        prob = [
-            bins[(sd, ed)]["probability"]
-            for sd in Direction
-            for ed in Direction
-        ]
-        return np.array(prob, dtype=np.float32)
+        model = self.dynamics.cells[center].model
+        return np.array(get_conditional_prob(model), dtype=np.float32)
