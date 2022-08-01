@@ -1,7 +1,7 @@
 import logging
 from contextlib import nullcontext
 from enum import IntEnum
-from typing import Optional, Sequence, Set, Tuple, Union
+from typing import Optional, Sequence, Set, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,8 +17,8 @@ from deepflow.nets import PeopleFlow
 
 logger = logging.getLogger(__name__)
 
-RowColumnPair = Tuple[int, int]
-DataPoint = Tuple[torch.Tensor, torch.Tensor]
+RowColumnPair = tuple[int, int]
+DataPoint = tuple[torch.Tensor, torch.Tensor]
 Loss = Union[torch.nn.MSELoss, torch.nn.KLDivLoss]
 
 _2PI = np.pi * 2

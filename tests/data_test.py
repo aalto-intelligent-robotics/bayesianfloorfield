@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Tuple
+from typing import Callable, Sequence
 
 import numpy as np
 import pytest
@@ -23,7 +23,7 @@ from mod.Grid import Grid
     ],
 )
 def test_get_directional_prob(
-    cell: Tuple, d_expected: Sequence, grid: Grid
+    cell: tuple, d_expected: Sequence, grid: Grid
 ) -> None:
     assert get_directional_prob(grid.cells[cell].bins) == d_expected
 
@@ -36,7 +36,7 @@ def test_get_directional_prob(
     ],
 )
 def test_get_conditional_prob(
-    cell: Tuple, d_expected: Sequence, grid_conditional: Grid
+    cell: tuple, d_expected: Sequence, grid_conditional: Grid
 ) -> None:
     assert (
         get_conditional_prob(grid_conditional.cells[cell].model) == d_expected

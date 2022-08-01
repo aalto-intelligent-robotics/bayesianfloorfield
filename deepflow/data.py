@@ -1,10 +1,9 @@
 from abc import abstractmethod
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Callable, Optional, Sequence
 
 import numpy as np
 import torch
 from mod.Grid import Grid
-from mod.Models import DiscreteConditionalDirectional, DiscreteDirectional
 from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.utils.data import Dataset
@@ -12,17 +11,17 @@ from torch.utils.data import Dataset
 from deepflow.utils import Direction, RowColumnPair, Window
 
 
-def get_directional_prob(model: DiscreteDirectional) -> Sequence[float]:
+def get_directional_prob(bins: dict) -> Sequence[float]:
     # Encodes dynamics in order: [E, NE, ...]
-    return [model[d.rad]["probability"] for d in Direction]  # type: ignore
+    return [
+        bins[d.rad]["probability"] if d.rad in bins else 0.0 for d in Direction
+    ]
 
 
-def get_conditional_prob(
-    model: DiscreteConditionalDirectional,
-) -> Sequence[float]:
+def get_conditional_prob(model: dict) -> Sequence[float]:
     # Encodes dynamics in order: [(Start_E, End_E), (Start_E, End_NE), ...]
     return [
-        model[(sd, ed)]["probability"]  # type: ignore
+        model[(sd, ed)]["probability"] if (sd, ed) in model else 0.0
         for sd in Direction
         for ed in Direction
     ]
@@ -188,14 +187,14 @@ class PeopleFlowDataset(Dataset):
     def __len__(self) -> int:
         return len(self.indeces)
 
-    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         center = self.indeces[index]
         return self.get_by_center(center)
 
     def get_by_center(
         self,
         center: RowColumnPair,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         center_occupancy = (
             self.map_size[1]
             - int((center[0] + self.map_origin[1]) / self.res_ratio),
