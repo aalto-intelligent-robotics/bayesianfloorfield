@@ -129,7 +129,7 @@ def track_likelihood_net_conditional(
         next_row, next_col = track[0:2, i + 1]
         center = (int(row), int(col))
         dir = Direction.from_points((col, -row), (next_col, -next_row))
-        if previous_dir:
+        if previous_dir is not None:
             crop = (
                 np.asarray(
                     occupancy.binary_map.crop(window.corners(center)).resize(
@@ -197,7 +197,7 @@ def track_likelihood_model_conditional(
         row, col = track[0:2, i]
         next_row, next_col = track[0:2, i + 1]
         dir = Direction.from_points((col, -row), (next_col, -next_row))
-        if previous_dir:
+        if previous_dir is not None:
             grid_row = occupancy_top - 1 - (track[2, i] + delta_origins[0])
             grid_col = track[3, i] + delta_origins[1]
             if (grid_row, grid_col) in grid.cells:
