@@ -41,14 +41,14 @@ SCALE = 8
 # GRID_SCALE = SCALE
 GRID_SCALE = 20
 
-DEVICE = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
 
 grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 grid_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 occupancy.origin = [-60.0, -40.0, 0.0]
-tracks: np.ndarray = convert_grid(grid)
+tracks = convert_grid(grid)
 
 id_string = f"_w{WINDOW_SIZE}_s{SCALE}_t_{EPOCHS}"
 

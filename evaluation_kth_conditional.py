@@ -37,7 +37,7 @@ GRID_DATA = BASE_PATH / "models" / "conditional_directional_kth.p"
 
 EPOCHS = 100
 WINDOW_SIZE = 64
-SCALE = 16
+SCALE = 8
 # GRID_SCALE = SCALE
 GRID_SCALE = 20
 
@@ -46,7 +46,7 @@ PLOT_DPI = 800
 
 grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
-tracks: np.ndarray = convert_matlab(TRACKS_DATA)
+tracks = convert_matlab(TRACKS_DATA)
 
 id_string = f"_cond_w{WINDOW_SIZE}_s{SCALE}_t_{EPOCHS}"
 
@@ -72,7 +72,8 @@ plt.figure(dpi=PLOT_DPI)
 show_occupancy(occupancy)
 
 # ids = range(len(tracks))
-# ids = [5101]
+# ids = [5101]  # straight track
+# ids = [4110]  # track with corners
 ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
 
 for id in ids:
@@ -134,7 +135,8 @@ plt.plot(WINDOW_SIZE // 2, WINDOW_SIZE // 2, "o", markersize=0.5)
 print(f"Deep model: people_net{id_string}")
 
 evaluation_ids = range(len(tracks))
-# evaluation_ids = [5101]
+# evaluation_ids = [5101]  # straight track
+# evaluation_ids = [4110]  # track with corners
 # evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
 # evaluation_ids = ids
 
@@ -160,7 +162,8 @@ print(
 print("Optimal model")
 
 evaluation_ids = range(len(tracks))
-# evaluation_ids = [5101]
+# evaluation_ids = [5101]  # straight track
+# evaluation_ids = [4110]  # track with corners
 # evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
 # evaluation_ids = ids
 
@@ -178,5 +181,3 @@ print(
     f"{like / (len(evaluation_ids)-skipped):.6f} "
     f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
 )
-
-# %%
