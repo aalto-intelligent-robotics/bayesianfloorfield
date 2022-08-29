@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from deepflow.evaluation import (
+from directionalflow.evaluation import (
     pixels2grid,
     track2pixels,
     track_likelihood_model,
@@ -8,7 +8,10 @@ from deepflow.evaluation import (
     track_likelihood_net,
     track_likelihood_net_conditional,
 )
-from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
+from directionalflow.nets import (
+    ConditionalDiscreteDirectional,
+    DiscreteDirectional,
+)
 from mod.Grid import Grid
 from mod.OccupancyMap import OccupancyMap
 

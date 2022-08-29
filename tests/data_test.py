@@ -3,7 +3,7 @@ from typing import Callable, Sequence
 import numpy as np
 import pytest
 import torchvision.transforms as transforms
-from deepflow.data import (
+from directionalflow.data import (
     ConditionalDirectionalDataset,
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,

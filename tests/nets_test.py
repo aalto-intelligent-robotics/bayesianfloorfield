@@ -1,7 +1,10 @@
 import mod.Models as mod
 import pytest
 import torch
-from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
+from directionalflow.nets import (
+    ConditionalDiscreteDirectional,
+    DiscreteDirectional,
+)
 
 
 def test_discretedirectional_model() -> None:

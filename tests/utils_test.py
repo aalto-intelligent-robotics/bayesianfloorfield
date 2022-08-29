@@ -2,8 +2,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
-from deepflow.utils import (
+from directionalflow.nets import (
+    ConditionalDiscreteDirectional,
+    DiscreteDirectional,
+)
+from directionalflow.utils import (
     Direction,
     Trainer,
     Window,

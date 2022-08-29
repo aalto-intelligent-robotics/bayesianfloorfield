@@ -14,15 +14,15 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
-from deepflow.evaluation import (
+from directionalflow.evaluation import (
     convert_matlab,
     pixels2grid,
     track2pixels,
     track_likelihood_model_conditional,
     track_likelihood_net_conditional,
 )
-from deepflow.nets import ConditionalDiscreteDirectional
-from deepflow.utils import Window, estimate_dynamics, plot_quivers
+from directionalflow.nets import ConditionalDiscreteDirectional
+from directionalflow.utils import Window, estimate_dynamics, plot_quivers
 from mod import Grid, Models
 from mod.OccupancyMap import OccupancyMap
 

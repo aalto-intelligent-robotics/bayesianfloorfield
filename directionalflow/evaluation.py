@@ -8,9 +8,12 @@ from mod.Grid import Grid
 from PIL import Image
 from tqdm import tqdm
 
-from deepflow.data import get_conditional_prob, get_directional_prob
-from deepflow.nets import ConditionalDiscreteDirectional, DiscreteDirectional
-from deepflow.utils import Direction, OccupancyMap, Window
+from directionalflow.data import get_conditional_prob, get_directional_prob
+from directionalflow.nets import (
+    ConditionalDiscreteDirectional,
+    DiscreteDirectional,
+)
+from directionalflow.utils import Direction, OccupancyMap, Window
 
 
 def convert_matlab(track_path: Path) -> np.ndarray:

@@ -14,14 +14,14 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from deepflow.data import (
+from directionalflow.data import (
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,
     RandomRotationPeopleFlow,
     RandomVerticalFlipPeopleFlow,
 )
-from deepflow.nets import DiscreteDirectional
-from deepflow.utils import (
+from directionalflow.nets import DiscreteDirectional
+from directionalflow.utils import (
     Direction,
     Trainer,
     estimate_dynamics,

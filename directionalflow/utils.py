@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import trange
 
-from deepflow.nets import PeopleFlow
+from directionalflow.nets import PeopleFlow
 
 logger = logging.getLogger(__name__)
 

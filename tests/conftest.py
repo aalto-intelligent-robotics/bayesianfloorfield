@@ -2,12 +2,12 @@ from unittest import mock
 
 import mod.Models as mod
 import pytest
-from deepflow.data import (
+from directionalflow.data import (
     ConditionalDirectionalDataset,
     DiscreteDirectionalDataset,
 )
-from deepflow.nets import DiscreteDirectional
-from deepflow.utils import Trainer
+from directionalflow.nets import DiscreteDirectional
+from directionalflow.utils import Trainer
 from mod.Grid import Grid
 from mod.OccupancyMap import OccupancyMap
 from PIL import Image

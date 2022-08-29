@@ -8,7 +8,7 @@ from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.utils.data import Dataset
 
-from deepflow.utils import Direction, RowColumnPair, Window
+from directionalflow.utils import Direction, RowColumnPair, Window
 
 
 def get_directional_prob(bins: dict) -> Sequence[float]:
@@ -249,7 +249,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
         bins = self.dynamics.cells[center].bins
-        return np.array(get_directional_prob(bins))
+        return np.array(get_directional_prob(bins), dtype=np.float32)
 
 
 class ConditionalDirectionalDataset(PeopleFlowDataset):
