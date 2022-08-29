@@ -17,19 +17,19 @@ stages:
 black:
   stage: Analysis
   script:
-  - black --check .
+    - black --check .
 
 flake8:
   stage: Analysis
   script:
-  - flake8 .
+    - flake8 .
 
 mypy:
   stage: Analysis
   script:
-  - mypy .
+    - mypy .
 
 unit_test:
   stage: Test
   script:
-  - pytest --cov=deepflow --cov-report term-missing:skip-covered
+    - pytest --cov=directionalflow --cov-report term-missing:skip-covered
