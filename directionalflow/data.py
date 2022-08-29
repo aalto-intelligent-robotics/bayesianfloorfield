@@ -18,15 +18,6 @@ def get_directional_prob(bins: dict) -> Sequence[float]:
     ]
 
 
-def get_conditional_prob(model: dict) -> Sequence[float]:
-    # Encodes dynamics in order: [(Start_E, End_E), (Start_E, End_NE), ...]
-    return [
-        model[(sd, ed)]["probability"] if (sd, ed) in model else 0.0
-        for sd in Direction
-        for ed in Direction
-    ]
-
-
 class _RandomFlipPeopleFlow(torch.nn.Module):
     """Random people flow flipping base class"""
 
@@ -69,16 +60,10 @@ class _RandomFlipPeopleFlow(torch.nn.Module):
         sz = dynamics.shape
         if sz == (8,):
             dynamics[self._dirs_from] = dynamics[self._dirs_to]
-        elif sz == (64,):
-            dynamics = dynamics.reshape((8, 8))
-            dynamics[self._dirs_from] = dynamics[self._dirs_to]
-            dynamics[:, self._dirs_from] = dynamics[:, self._dirs_to]
-            dynamics = dynamics.reshape(64)
         else:
             raise NotImplementedError(
                 f"Received wrong shape: {sz}.\n"
-                "This transformation can only be applied to directional or "
-                "conditional directional models"
+                "This transformation can only be applied to directional models"
             )
         return dynamics
 
@@ -143,20 +128,10 @@ class RandomRotationPeopleFlow(torch.nn.Module):
         sz = dynamics.shape
         if sz == (8,):
             dynamics = np.take(dynamics, range(-2 * k, 8 - 2 * k), mode="wrap")
-        elif sz == (64,):
-            dynamics = dynamics.reshape((8, 8))
-            dynamics = np.take(
-                dynamics, range(-2 * k, 8 - 2 * k), axis=0, mode="wrap"
-            )
-            dynamics = np.take(
-                dynamics, range(-2 * k, 8 - 2 * k), axis=1, mode="wrap"
-            )
-            dynamics = dynamics.reshape(64)
         else:
             raise NotImplementedError(
                 f"Received wrong shape: {sz}.\n"
-                "This transformation can only be applied to directional or "
-                "conditional directional models"
+                "This transformation can only be applied to directional models"
             )
         return dynamics
 
@@ -250,26 +225,3 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
         bins = self.dynamics.cells[center].bins
         return np.array(get_directional_prob(bins), dtype=np.float32)
-
-
-class ConditionalDirectionalDataset(PeopleFlowDataset):
-    def __init__(
-        self,
-        occupancy: OccupancyMap,
-        dynamics: Grid,
-        window_size: int = 32,
-        scale: int = 1,
-        transform: Optional[Callable] = None,
-    ) -> None:
-        super().__init__(
-            occupancy,
-            dynamics,
-            window_size,
-            output_channels=64,
-            scale=scale,
-            transform=transform,
-        )
-
-    def _dynamics(self, center: RowColumnPair) -> np.ndarray:
-        model = self.dynamics.cells[center].model
-        return np.array(get_conditional_prob(model), dtype=np.float32)

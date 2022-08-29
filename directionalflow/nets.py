@@ -1,13 +1,11 @@
 from functools import partial
-from typing import Type, Union
+from typing import Type
 
 import mod.Models as mod
 import octopytorch as octo
 from torch import nn
 
-DynModel = Union[
-    Type[mod.DiscreteDirectional], Type[mod.DiscreteConditionalDirectional]
-]
+DynModel = Type[mod.DiscreteDirectional]
 
 
 class PeopleFlow(octo.models.Tiramisu):
@@ -57,13 +55,4 @@ class DiscreteDirectional(PeopleFlow):
             model=mod.DiscreteDirectional,
             window_size=window_size,
             out_channels=8,
-        )
-
-
-class ConditionalDiscreteDirectional(PeopleFlow):
-    def __init__(self, window_size: int) -> None:
-        super().__init__(
-            model=mod.DiscreteConditionalDirectional,
-            window_size=window_size,
-            out_channels=64,
         )

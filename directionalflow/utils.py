@@ -99,7 +99,6 @@ def plot_dir(
 def plot_quivers(
     occupancy: np.ndarray,
     dynamics: np.ndarray,
-    enter_dir: Optional[Direction] = None,
     window_size: Optional[int] = None,
     center: Optional[RowColumnPair] = None,
     normalize: bool = True,
@@ -110,11 +109,7 @@ def plot_quivers(
     assert (window_size is None and center is None) or (
         window_size is not None and center is not None
     )
-    if enter_dir is None:
-        assert sz[2] == 8
-    else:
-        e = enter_dir.value * 8
-        dynamics = dynamics[..., e : e + 8]
+    assert sz[2] == 8
 
     if window_size is not None and center is not None:
         w = Window(window_size)

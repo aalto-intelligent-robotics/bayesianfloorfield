@@ -2,10 +2,7 @@ from unittest import mock
 
 import mod.Models as mod
 import pytest
-from directionalflow.data import (
-    ConditionalDirectionalDataset,
-    DiscreteDirectionalDataset,
-)
+from directionalflow.data import DiscreteDirectionalDataset
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Trainer
 from mod.Grid import Grid
@@ -50,40 +47,9 @@ def grid() -> Grid:
 
 
 @pytest.fixture
-def grid_conditional() -> Grid:
-    grid = mock.MagicMock(spec=Grid)
-    cell1 = mod.DiscreteConditionalDirectional(
-        coords=(0, 0), index=(0, 0), resolution=1
-    )
-    cell2 = mod.DiscreteConditionalDirectional(
-        coords=(0, 1), index=(0, 1), resolution=1
-    )
-    cell1.model[(0, 0)]["probability"] = 1.0 / 2
-    cell1.model[(0, 5)]["probability"] = 1.0 / 2
-    cell2.model[(3, 1)]["probability"] = 1.0
-    grid.configure_mock(
-        **{
-            "resolution": 1000,
-            "cells": {(0, 0): cell1, (0, 1): cell2},
-            "origin": [0, 2, 0],
-        }
-    )
-    return grid
-
-
-@pytest.fixture
 def dataset(occupancy: OccupancyMap, grid: Grid) -> DiscreteDirectionalDataset:
     return DiscreteDirectionalDataset(
         occupancy=occupancy, dynamics=grid, window_size=2
-    )
-
-
-@pytest.fixture
-def dataset_conditional(
-    occupancy: OccupancyMap, grid_conditional: Grid
-) -> ConditionalDirectionalDataset:
-    return ConditionalDirectionalDataset(
-        occupancy=occupancy, dynamics=grid_conditional, window_size=2
     )
 
 

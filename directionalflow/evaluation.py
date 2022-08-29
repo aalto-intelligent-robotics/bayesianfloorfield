@@ -8,11 +8,8 @@ from mod.Grid import Grid
 from PIL import Image
 from tqdm import tqdm
 
-from directionalflow.data import get_conditional_prob, get_directional_prob
-from directionalflow.nets import (
-    ConditionalDiscreteDirectional,
-    DiscreteDirectional,
-)
+from directionalflow.data import get_directional_prob
+from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Direction, OccupancyMap, Window
 
 
@@ -114,48 +111,6 @@ def track_likelihood_net(
     return like
 
 
-def track_likelihood_net_conditional(
-    track: np.ndarray,
-    occupancy: OccupancyMap,
-    window_size: int,
-    scale: int,
-    net: ConditionalDiscreteDirectional,
-    device: torch.device = torch.device("cpu"),
-) -> float:
-    window = Window(window_size * scale)
-    net.to(device)
-    net.eval()
-    like = 0
-    previous_dir = None
-    for i in range(track.shape[1] - 1):
-        row, col = track[0:2, i]
-        next_row, next_col = track[0:2, i + 1]
-        center = (int(row), int(col))
-        dir = Direction.from_points((col, -row), (next_col, -next_row))
-        if previous_dir is not None:
-            crop = (
-                np.asarray(
-                    occupancy.binary_map.crop(window.corners(center)).resize(
-                        (window_size, window_size), Image.ANTIALIAS
-                    ),
-                    "float",
-                )
-                / 255.0
-            )
-            inputs = torch.from_numpy(np.expand_dims(crop, axis=(0, 1))).to(
-                device, dtype=torch.float
-            )
-            with torch.no_grad():
-                pred = (
-                    net(inputs)[0, :, window_size // 2, window_size // 2]
-                    .cpu()
-                    .numpy()
-                )
-            like += pred[previous_dir * 8 + dir] / (track.shape[1] - 2)
-        previous_dir = dir
-    return like
-
-
 def track_likelihood_model(
     track: np.ndarray, occupancy: OccupancyMap, grid: Grid
 ) -> float:
@@ -179,38 +134,6 @@ def track_likelihood_model(
             missing += 1
             pred = [1 / 8] * 8
         like += pred[dir] / (track.shape[1] - 1)
-    if missing:
-        print(f"missing: {missing}")
-    return like
-
-
-def track_likelihood_model_conditional(
-    track: np.ndarray, occupancy: OccupancyMap, grid: Grid
-) -> float:
-    like = 0.0
-    occupancy_top = int(occupancy.map.size[1] * occupancy.resolution)
-    delta_origins = [
-        occupancy.origin[1] - grid.origin[1] / grid.resolution,
-        occupancy.origin[0] - grid.origin[0] / grid.resolution,
-    ]
-    missing = 0
-    previous_dir = None
-    for i in range(track.shape[1] - 1):
-        row, col = track[0:2, i]
-        next_row, next_col = track[0:2, i + 1]
-        dir = Direction.from_points((col, -row), (next_col, -next_row))
-        if previous_dir is not None:
-            grid_row = occupancy_top - 1 - (track[2, i] + delta_origins[0])
-            grid_col = track[3, i] + delta_origins[1]
-            if (grid_row, grid_col) in grid.cells:
-                cell = grid.cells[(grid_row, grid_col)]
-                pred = get_conditional_prob(cell.model)
-            else:
-                missing += 1
-                print(f"missing: {(grid_row, grid_col)}")
-                pred = [1 / 64] * 64
-            like += pred[previous_dir * 8 + dir] / (track.shape[1] - 2)
-        previous_dir = dir
     if missing:
         print(f"missing: {missing}")
     return like

@@ -1,22 +1,13 @@
 import mod.Models as mod
 import pytest
 import torch
-from directionalflow.nets import (
-    ConditionalDiscreteDirectional,
-    DiscreteDirectional,
-)
+from directionalflow.nets import DiscreteDirectional
 
 
 def test_discretedirectional_model() -> None:
     net = DiscreteDirectional(window_size=32)
     assert net.model == mod.DiscreteDirectional
     assert net.out_channels == 8
-
-
-def test_conditionaldirectional_model() -> None:
-    net = ConditionalDiscreteDirectional(window_size=32)
-    assert net.model == mod.DiscreteConditionalDirectional
-    assert net.out_channels == 64
 
 
 def test_network_ouput() -> None:

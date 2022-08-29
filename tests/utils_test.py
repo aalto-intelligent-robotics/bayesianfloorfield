@@ -2,10 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from directionalflow.nets import (
-    ConditionalDiscreteDirectional,
-    DiscreteDirectional,
-)
+from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import (
     Direction,
     Trainer,
@@ -196,14 +193,6 @@ def test_estimate_discretedirectional(occupancy: OccupancyMap) -> None:
     net = DiscreteDirectional(window_size=2)
     dyn_map = estimate_dynamics(net, occupancy, device=device("cpu"))
     assert dyn_map.shape == (2, 2, 8)
-    assert sum(dyn_map[0, 0, :]) == pytest.approx(1)
-    assert sum(dyn_map[0, 1, :]) == pytest.approx(1)
-
-
-def test_estimate_conditionaldirectional(occupancy: OccupancyMap) -> None:
-    net = ConditionalDiscreteDirectional(window_size=2)
-    dyn_map = estimate_dynamics(net, occupancy, device=device("cpu"))
-    assert dyn_map.shape == (2, 2, 64)
     assert sum(dyn_map[0, 0, :]) == pytest.approx(1)
     assert sum(dyn_map[0, 1, :]) == pytest.approx(1)
 
