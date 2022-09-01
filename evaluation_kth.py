@@ -29,9 +29,10 @@ from mod.OccupancyMap import OccupancyMap
 sys.modules["Grid"] = Grid
 sys.modules["Models"] = Models
 
+# Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/KTH_track/")
+
 MAP_METADATA = BASE_PATH / "map.yaml"
-MAP_PGM = BASE_PATH / "map.pgm"
 TRACKS_DATA = BASE_PATH / "dataTrajectoryNoIDCell6251.mat"
 GRID_DATA = BASE_PATH / "models" / "discrete_directional_kth.p"
 

@@ -29,11 +29,12 @@ from mod.OccupancyMap import OccupancyMap
 sys.modules["Grid"] = Grid
 sys.modules["Models"] = Models
 
+# Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
+
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
-MAP_PGM = BASE_PATH / "localization_grid.pgm"
-GRID_DATA = BASE_PATH / "models" / "discrete_directional.p"
-GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
+GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional.p"
+GRID_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
 
 EPOCHS = 100
 WINDOW_SIZE = 64

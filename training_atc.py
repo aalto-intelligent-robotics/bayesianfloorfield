@@ -6,6 +6,7 @@
 import logging
 import pickle
 import sys
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -29,7 +30,7 @@ from directionalflow.utils import (
     plot_quivers,
     random_input,
 )
-from mod import Grid, Helpers, Models
+from mod import Grid, Models
 from mod.OccupancyMap import OccupancyMap
 from mod.Visualisation import MapVisualisation
 
@@ -40,17 +41,16 @@ logging.basicConfig(level=logging.INFO)
 sys.modules["Grid"] = Grid
 sys.modules["Models"] = Models
 
-_, local = Helpers.get_local_settings(
-    json_path="mod/config/local_settings.json",
-    schema_path="mod/config/local_settings_schema.json",
-)
-occ_path = local["dataset_folder"] + "localization_grid.yaml"
-train_path = local["pickle_folder"] + "discrete_directional_2.p"
-test_path = local["pickle_folder"] + "discrete_directional.p"
+# Change BASE_PATH to the folder where data and models are located
+BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
 
-occ = OccupancyMap.from_yaml(occ_path)
-dyn_train: Grid.Grid = pickle.load(open(train_path, "rb"))
-dyn_test: Grid.Grid = pickle.load(open(test_path, "rb"))
+MAP_METADATA = BASE_PATH / "localization_grid.yaml"
+GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional.p"
+GRID_TEST_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
+
+occ = OccupancyMap.from_yaml(MAP_METADATA)
+dyn_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
+dyn_test: Grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 
 MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 

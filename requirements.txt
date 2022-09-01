@@ -9,3 +9,5 @@ tensorboard==2.7.0
 torch==1.9.1
 torchvision==0.10.1
 tqdm==4.62.3
+# mod
+PyYAML==5.4.1
