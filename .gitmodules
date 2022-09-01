@@ -3,4 +3,4 @@
 	url = ../../kucnert1/mod_framework.git
 [submodule "octopytorch"]
 	path = octopytorch
-	url = https://github.com/npielawski/octopytorch.git
+	url = https://github.com/fverdoja/octopytorch.git
