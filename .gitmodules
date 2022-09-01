@@ -1,0 +1,3 @@
+[submodule "octopytorch"]
+	path = octopytorch
+	url = https://github.com/fverdoja/octopytorch.git

@@ -1,0 +1,35 @@
+image: "python:3.9.1"
+
+variables:
+  GIT_SUBMODULE_STRATEGY: normal
+
+before_script:
+  - pip install --upgrade pip
+  - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  - if [ -f mod/requirements.txt ]; then pip install -r mod/requirements.txt; fi
+  - if [ -f octopytorch/requirements.txt ]; then pip install -r octopytorch/requirements.txt; fi
+  - if [ -f requirements_dev.txt ]; then pip install -r requirements_dev.txt; fi
+
+stages:
+  - Analysis
+  - Test
+
+black:
+  stage: Analysis
+  script:
+    - black --check .
+
+flake8:
+  stage: Analysis
+  script:
+    - flake8 .
+
+mypy:
+  stage: Analysis
+  script:
+    - mypy .
+
+unit_test:
+  stage: Test
+  script:
+    - pytest --cov=directionalflow --cov-report term-missing:skip-covered
