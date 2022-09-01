@@ -1,0 +1,58 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python checks and tests
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    name: Code check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9.1"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          if [ -f requirements_dev.txt ]; then pip install -r requirements_dev.txt; fi
+      - name: Check with black
+        run: |
+          black --check .
+      - name: Lint with flake8
+        run: |
+          flake8 .
+      - name: Check types with mypy
+        run: |
+          mypy .
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9.1"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f mod/requirements.txt ]; then pip install -r mod/requirements.txt; fi
+          if [ -f octopytorch/requirements.txt ]; then pip install -r octopytorch/requirements.txt; fi
+          if [ -f requirements_dev.txt ]; then pip install -r requirements_dev.txt; fi
+      - name: Test with pytest
+        run: |
+          pytest --cov=directionalflow --cov-report term-missing:skip-covered
