@@ -22,6 +22,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f mod/requirements.txt ]; then pip install -r mod/requirements.txt; fi
+          if [ -f octopytorch/requirements.txt ]; then pip install -r octopytorch/requirements.txt; fi
           if [ -f requirements_dev.txt ]; then pip install -r requirements_dev.txt; fi
       - name: Check with black
         run: |
