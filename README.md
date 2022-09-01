@@ -2,9 +2,14 @@
 
 Learning to estimate people flow from environment geometry
 
-**Authors:** Francesco Verdoja, Tomasz Kucner (MoD implementation)
-**Maintainer:** Francesco Verdoja, francesco.verdoja@aalto.fi
+**Authors:** Francesco Verdoja, Tomasz Kucner (MoD implementation)\
+**Maintainer:** Francesco Verdoja, francesco.verdoja@aalto.fi\
 **Affiliation:** Intelligent Robotics Lab, Aalto University
+
+## Data
+
+[Link to download the data and
+models](https://drive.google.com/file/d/1uBieK_S5gPkBNPBfp5Tb9uErQTsGHzhB/view?usp=sharing)
 
 ## Citation
 
