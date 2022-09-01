@@ -6,6 +6,11 @@ Learning to estimate people flow from environment geometry
 **Maintainer:** Francesco Verdoja, francesco.verdoja@aalto.fi\
 **Affiliation:** Intelligent Robotics Lab, Aalto University
 
+## Data
+
+[Link to download the data and
+models](https://drive.google.com/file/d/1uBieK_S5gPkBNPBfp5Tb9uErQTsGHzhB/view?usp=sharing)
+
 ## Citation
 
 If this code is useful in your research, please consider citing:
