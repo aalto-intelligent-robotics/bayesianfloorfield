@@ -76,3 +76,11 @@ class MapVisualisation:
             minshaft=2,
             # alpha=P,
         )
+
+    def __show_occupancy(self):
+        if self.occ is not None:
+            r = self.occ.resolution
+            o = self.occ.origin
+            sz = self.occ.map.size
+            extent = (o[0], o[0] + sz[0] * r, o[1], o[1] + sz[1] * r)
+            plt.imshow(self.occ.map, extent=extent, cmap="gray")

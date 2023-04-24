@@ -7,13 +7,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as F
-from mod.OccupancyMap import OccupancyMap
+from PIL import Image
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import trange
 
 from directionalflow.nets import PeopleFlow
+from mod.OccupancyMap import OccupancyMap
 
 logger = logging.getLogger(__name__)
 
@@ -81,52 +82,72 @@ def plot_dir(
     dynamics: np.ndarray,
     dir: Direction,
     dpi: int = 300,
-    cmap: str = "hot",
+    cmap: str = "inferno",
 ) -> None:
     binary_map = occupancy.binary_map
     plt.figure(dpi=dpi)
     plt.title(f"Direction: {dir.name}")
-    plt.imshow(dynamics[..., dir.value], vmin=0, vmax=1, cmap=cmap)
+    sz = occupancy.binary_map.size
+    extent = 0, sz[0], 0, sz[1]
+    plt.imshow(
+        dynamics[..., dir.value], vmin=0, vmax=1, cmap=cmap, extent=extent
+    )
     plt.imshow(
         np.ma.masked_where(np.array(binary_map) < 0.5, binary_map),
         vmin=0,
         vmax=1,
         cmap="gray",
         interpolation="none",
+        extent=extent,
     )
 
 
 def plot_quivers(
     occupancy: np.ndarray,
     dynamics: np.ndarray,
+    scale: int = 1,
     window_size: Optional[int] = None,
     center: Optional[RowColumnPair] = None,
     normalize: bool = True,
     dpi: int = 300,
 ) -> None:
-    sz = dynamics.shape
-    assert occupancy.shape == sz[0:2]
+    sz_occ = occupancy.shape
+    sz_dyn = dynamics.shape
+    assert sz_occ[0] // scale == sz_dyn[0] and sz_occ[1] // scale == sz_dyn[1]
     assert (window_size is None and center is None) or (
         window_size is not None and center is not None
     )
-    assert sz[2] == 8
+    assert sz_dyn[2] == 8
 
     if window_size is not None and center is not None:
-        w = Window(window_size)
-        left, top, right, bottom = w.corners(
-            center, bounds=(0, sz[0], 0, sz[1])
+        w_occ = Window(window_size)
+        left, top, right, bottom = w_occ.corners(
+            center, bounds=(0, sz_occ[0], 0, sz_occ[1])
+        )
+        w_dyn = Window(window_size // scale)
+        center_dyn = (center[0] // scale, center[1] // scale)
+        left_d, top_d, right_d, bottom_d = w_dyn.corners(
+            center_dyn, bounds=(0, sz_dyn[0], 0, sz_dyn[1])
         )
         occ = occupancy[top:bottom, left:right]
-        dyn = dynamics[top:bottom, left:right, ...]
+        dyn = dynamics[top_d:bottom_d, left_d:right_d, ...]
+        YX = np.mgrid[0 : window_size // scale, 0 : window_size // scale]
+        extent = [
+            -0.5,
+            window_size // scale - 0.5,
+            -0.5,
+            window_size // scale - 0.5,
+        ]
     else:
         occ = occupancy
         dyn = dynamics
+        YX = np.mgrid[0 : dyn.shape[0], 0 : dyn.shape[1]]
+        extent = [-0.5, dyn.shape[0] - 0.5, -0.5, dyn.shape[1] - 0.5]
     dyn = dyn.reshape((-1, 8))
     if normalize:
         dyn = scale_quivers(dyn)
 
     plt.figure(dpi=dpi)
-    YX = np.mgrid[0 : occ.shape[0], 0 : occ.shape[1]]
     Y: list[list[int]] = [[y] * 8 for y in YX[0].flatten()]
     X: list[list[int]] = [[x] * 8 for x in YX[1].flatten()]
     u = [d.u for d in Direction]
@@ -140,6 +161,7 @@ def plot_quivers(
         vmax=1,
         cmap="gray",
         interpolation="none",
+        extent=extent,
     )
 
 
@@ -163,6 +185,8 @@ def random_input(
 def estimate_dynamics(
     net: PeopleFlow,
     occupancy: Union[OccupancyMap, np.ndarray],
+    scale: int = 1,
+    # TODO: crop: Optional[Sequence[int]] = None,  # (left, top, right, bottom)
     batch_size: int = 4,
     device: Optional[torch.device] = None,
 ) -> np.ndarray:
@@ -173,8 +197,27 @@ def estimate_dynamics(
     net.eval()
 
     if isinstance(occupancy, OccupancyMap):
-        bin_map = np.array(occupancy.binary_map)
+        if scale > 1:
+            occupancy_size = occupancy.binary_map.size
+            padded_width = (-occupancy_size[0] % scale) + occupancy_size[0]
+            padded_height = (-occupancy_size[1] % scale) + occupancy_size[1]
+            bin_image = Image.new(
+                occupancy.binary_map.mode, (padded_width, padded_height)
+            )
+            bin_image.paste(occupancy.binary_map, (0, 0))
+            bin_map = np.array(
+                bin_image.resize(
+                    (bin_image.size[0] // scale, bin_image.size[1] // scale),
+                    Image.ANTIALIAS,
+                )
+            )
+        else:
+            bin_map = np.array(occupancy.binary_map)
     else:
+        if scale > 1:
+            logger.warning(
+                "Parameter scale is ignored when occupancy is a numpy array."
+            )
         bin_map = occupancy
     h, w = bin_map.shape
     channels = 1

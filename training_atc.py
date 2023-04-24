@@ -159,7 +159,9 @@ plot_quivers(inputs, outputs, dpi=1000)
 
 # %% Build the full dynamic map
 
-dyn_map = estimate_dynamics(net, occ, device=device, batch_size=100)
+dyn_map = estimate_dynamics(
+    net, occ, device=device, batch_size=100, scale=scale
+)
 
 # %% Save full dynamic map
 np.save(f"maps/map{id_string}.npy", dyn_map)
@@ -169,17 +171,22 @@ dyn_map = np.load(f"maps/map{id_string}.npy")
 
 # %% Visualize
 
-plot_dir(occ, dyn_map, Direction.N)
-plot_dir(occ, dyn_map, Direction.E)
-plot_dir(occ, dyn_map, Direction.S)
-plot_dir(occ, dyn_map, Direction.W)
+plot_dir(occ, dyn_map, Direction.NW)
+plot_dir(occ, dyn_map, Direction.NE)
+plot_dir(occ, dyn_map, Direction.SW)
+plot_dir(occ, dyn_map, Direction.SE)
 
 # %% Visualize quiver
 
-center = (200, 530)
+center = (400, 730)
 w = 64
 plot_quivers(
-    np.array(occ.binary_map), dyn_map, dpi=1000, center=center, window_size=w
+    np.array(occ.binary_map) >= 1 / scale,
+    dyn_map,
+    scale=scale,
+    dpi=1000,
+    center=center,
+    window_size=w * 4,
 )
 
 # %%
