@@ -1,0 +1,19 @@
+{
+  "creator": "Francesco Verdoja",
+  "date": "2022-02-17",
+  "input_file": "kth_trajectory_data.csv",
+  "input_description": "Process KTH dataset",
+  "output_file": "kth_trajectory_data_curated.csv",
+  "separator": ",",
+  "chunk_size": 100000,
+  "process_columns": {
+    "method": [
+      "WrapTo2pi",
+      "mm2m"
+    ],
+    "columns": [
+      "motion_angle",
+      "velocity"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "creator": "Tomasz Kucner",
+  "date": "2021-07-05",
+  "input_file": "atc-20121114_short.csv",
+  "input_description": "Test experiment with ATC demo data file (relatively small)",
+  "output_file": "subsampled/atc-20121114_5.csv",
+  "separator": ",",
+  "chunk_size": 100000,
+  "subsample": {
+    "method": "line_keep",
+    "parameter": 5
+  },
+  "drop_columns": [
+    "z",
+    "facing_angle"
+  ],
+  "process_columns": {
+    "method": [
+      "WrapTo2pi",
+      "mm2m"
+    ],
+    "columns": [
+      "motion_angle",
+      "velocity"
+    ]
+  },
+  "replace_header": {
+    "input": [
+      "person_id"
+    ],
+    "replacement": [
+      "track_id"
+    ]
+  }
+}

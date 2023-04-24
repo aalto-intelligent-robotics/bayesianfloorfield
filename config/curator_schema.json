@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/product.schema.json",
+  "title": "Configuration for Curator",
+  "description": "Configuration of data curator",
+  "type": "object",
+  "properties": {
+    "date": {
+      "description": "Date of the file creation",
+      "type": "string",
+      "default": {}
+    },
+    "creator": {
+      "description": "Name of the creator of the file.",
+      "type": "string",
+      "default": {}
+    },
+    "input_file": {
+      "description": "path to a text file containing raw, not curated data",
+      "type": "string",
+      "default": {}
+    },
+    "input_description": {
+      "type": "string",
+      "description": "Free text for describing input data",
+      "default": {}
+    },
+    "chunk_size": {
+      "type": "integer",
+      "description": "Size of the chunk to be processed when working with large files. If set to 0 files will be processed as a whole.",
+      "default": 0
+    },
+    "separator": {
+      "type": "string",
+      "description": "Data in row separator",
+      "default": ","
+    },
+    "replace_header": {
+      "type": "object",
+      "description": "Two data vectors mapping the names of headers to be replaced",
+      "default": {},
+      "properties": {
+        "input": {
+          "type": "array",
+          "description": "Array of input names to be replaced"
+        },
+        "replacement": {
+          "type": "array",
+          "description": "Array of names for replacement"
+        }
+      }
+    },
+    "add_header": {
+      "type": "array",
+      "description": "List of headers to be appended to the data"
+    },
+    "drop_columns": {
+      "type": "array",
+      "description": "List of columns to be dropped from the input data",
+      "default": []
+    },
+    "subsample": {
+      "properties": {
+        "method": {
+          "type": "string",
+          "description": "Names the subsampling method to be used in the data processing",
+          "default": ""
+        },
+        "parameter": {
+          "type": "number",
+          "description": "Parameter controlling subsampling process",
+          "default": 0
+        }
+      },
+      "default": {
+        "method": "",
+        "parameter": 0
+      }
+    },
+    "process_columns": {
+      "properties": {
+        "method": {
+          "type": "array",
+          "description": "names of methods for column processing",
+          "default": {}
+        },
+        "columns": {
+          "type": "array",
+          "description": "names of columns for processing",
+          "default": {}
+        }
+      },
+      "default": {}
+    },
+    "output_file": {
+      "type": "string",
+      "description": "Path to the output file.",
+      "default": {}
+    }
+  },
+  "additionalProperties": false,
+  "default": {}
+}
