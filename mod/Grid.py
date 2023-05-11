@@ -1,5 +1,6 @@
 import collections
 import logging
+from copy import deepcopy
 
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
@@ -51,3 +52,17 @@ class Grid:
     def update_model(self):
         for he in self.cells:
             self.cells[he].update_model(self.total_count)
+
+
+def move_grid_origin(grid, new_origin):
+    new_grid = deepcopy(grid)
+    old_origin = new_grid.origin
+    delta_origin = (
+        old_origin[0] - new_origin[0],
+        old_origin[1] - new_origin[1],
+    )
+    for cell in new_grid.cells.values():
+        cell.coords["x"] = cell.coords["x"] - delta_origin[0]
+        cell.coords["y"] = cell.coords["y"] - delta_origin[1]
+    new_grid.origin = new_origin
+    return new_grid
