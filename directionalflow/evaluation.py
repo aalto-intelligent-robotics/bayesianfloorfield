@@ -142,4 +142,4 @@ def track_likelihood_model(
             matches += 1
     if missing:
         print(f"missing: {missing}")
-    return like / matches
+    return like / matches if matches else like
