@@ -4,13 +4,13 @@ import numpy as np
 import pandas as pd
 import scipy.io as sio
 import torch
-from mod.Grid import Grid
 from PIL import Image
 from tqdm import tqdm
 
 from directionalflow.data import get_directional_prob
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Direction, OccupancyMap, Window
+from mod.Grid import Grid
 
 
 def convert_matlab(track_path: Path) -> np.ndarray:
@@ -112,7 +112,10 @@ def track_likelihood_net(
 
 
 def track_likelihood_model(
-    track: np.ndarray, occupancy: OccupancyMap, grid: Grid
+    track: np.ndarray,
+    occupancy: OccupancyMap,
+    grid: Grid,
+    ignore_missing: bool = False,
 ) -> float:
     like = 0.0
     occupancy_top = int(occupancy.map.size[1] * occupancy.resolution)
@@ -121,6 +124,7 @@ def track_likelihood_model(
         occupancy.origin[0] - grid.origin[0] / grid.resolution,
     ]
     missing = 0
+    matches = 0
     for i in range(track.shape[1] - 1):
         row, col = track[0:2, i]
         next_row, next_col = track[0:2, i + 1]
@@ -130,10 +134,12 @@ def track_likelihood_model(
         if (grid_row, grid_col) in grid.cells:
             cell = grid.cells[(grid_row, grid_col)]
             pred = get_directional_prob(cell.bins)
-        else:
+            like += pred[dir]
+            matches += 1
+        elif not ignore_missing:
+            like += 1 / 8
             missing += 1
-            pred = [1 / 8] * 8
-        like += pred[dir] / (track.shape[1] - 1)
+            matches += 1
     if missing:
         print(f"missing: {missing}")
-    return like
+    return like / matches
