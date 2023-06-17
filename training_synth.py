@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 import torchvision.transforms as transforms
-from torch.utils.data import ConcatDataset, DataLoader
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from directionalflow.data import (
@@ -42,25 +42,23 @@ sys.modules["Grid"] = Grid
 sys.modules["Models"] = Models
 
 # Change BASE_PATH to the folder where data and models are located
-BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
+BASE_PATH = Path("/home/francesco/deep-flow/data/Rex/")
 
-MAP_METADATA = BASE_PATH / "localization_grid.yaml"
-GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional.p"
-GRID_TRAIN_SYNTH_DATA = BASE_PATH / "models" / "discrete_directional.p"
-GRID_TEST_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
+MAP_METADATA = BASE_PATH / "randomenvimg_x20.yaml"
+GRID_TRAIN_DATA = BASE_PATH / "discrete_directional_randomenv_x20.p"
+GRID_TEST_DATA = (
+    Path("/mnt/hdd/datasets/ATC/") / "models" / "discrete_directional_2.p"
+)
 
 occ = OccupancyMap.from_yaml(MAP_METADATA)
-occ_synth = OccupancyMap.from_yaml(MAP_METADATA)
 dyn_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
-dyn_train_synth: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 dyn_test: Grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 
 MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 
 # %%
 window_size = 64
-scale = 20
-scale_synth = 1
+scale = 8
 
 # transform = None
 transform = transforms.Compose(
@@ -72,7 +70,7 @@ transform = transforms.Compose(
 )
 
 id_string = (
-    f"_w{window_size}_s{scale}_synth_{'_t' if transform is not None else ''}"
+    f"_w{window_size}_s{scale}_synth{'_t' if transform is not None else ''}"
 )
 
 trainset = DiscreteDirectionalDataset(
@@ -80,13 +78,6 @@ trainset = DiscreteDirectionalDataset(
     dynamics=dyn_train,
     window_size=window_size,
     scale=scale,
-    transform=transform,
-)
-trainset_synth = DiscreteDirectionalDataset(
-    occupancy=occ_synth,
-    dynamics=dyn_train_synth,
-    window_size=window_size,
-    scale=scale_synth,
     transform=transform,
 )
 valset = DiscreteDirectionalDataset(
@@ -100,10 +91,7 @@ net = DiscreteDirectional(window_size)
 batch_size = 32
 
 trainloader = DataLoader(
-    ConcatDataset([trainset, trainset_synth]),
-    batch_size=batch_size,
-    shuffle=True,
-    num_workers=2,
+    trainset, batch_size=batch_size, shuffle=True, num_workers=2
 )
 
 valloader = DataLoader(
