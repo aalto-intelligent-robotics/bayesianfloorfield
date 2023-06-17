@@ -1,7 +1,18 @@
+import logging
 from pathlib import Path
 
 import yaml
 from PIL import Image
+
+logger = logging.getLogger("OccupancyMap Logger")
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 class OccupancyMap:
@@ -26,6 +37,12 @@ class OccupancyMap:
             round(free_thresh * 255) if free_thresh < 1 else round(free_thresh)
         )
         self.map = Image.open(image_file)
+        if not self.map.mode == "L":
+            logger.warn(
+                f"Map image format is '{self.map.mode}', should be 'L' "
+                "(8-bit grayscale, no alpha), converting it to 'L'."
+            )
+            self.map = self.map.convert("L")
 
     @property
     def binary_map(self):
