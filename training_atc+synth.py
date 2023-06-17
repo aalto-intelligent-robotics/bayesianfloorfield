@@ -97,7 +97,7 @@ valset = DiscreteDirectionalDataset(
     occupancy=occ, dynamics=dyn_test, window_size=window_size, scale=scale
 )
 
-trainset_combined = ConcatDataset([trainset, trainset_synth])
+trainset_combined: ConcatDataset = ConcatDataset([trainset, trainset_synth])
 trainset_weights = [len(trainset_combined) / len(trainset)] * len(trainset) + [
     len(trainset_combined) / len(trainset_synth)
 ] * len(trainset_synth)
