@@ -3,12 +3,12 @@ from typing import Callable, Optional, Sequence
 
 import numpy as np
 import torch
-from mod.Grid import Grid
-from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.utils.data import Dataset
 
 from directionalflow.utils import Direction, RowColumnPair, Window
+from mod.Grid import Grid
+from mod.OccupancyMap import OccupancyMap
 
 
 def get_directional_prob(bins: dict) -> Sequence[float]:
@@ -145,19 +145,22 @@ class PeopleFlowDataset(Dataset):
         output_channels: int,
         scale: int = 1,
         transform: Optional[Callable] = None,
+        dynamics_in_mm: bool = True,
     ) -> None:
         super().__init__()
         self.occupancy = occupancy.binary_map
         self.map_origin = occupancy.origin
         self.map_size = self.occupancy.size
         self.dynamics = dynamics
-        self.res_ratio = occupancy.resolution / (dynamics.resolution / 1000)
+        self.res_ratio = occupancy.resolution / (
+            dynamics.resolution / (1000 if dynamics_in_mm else 1)
+        )
         self.output_channels = output_channels
         self.window_size = window_size
         self.indeces = self.get_indeces()
         self.scale = scale
         self.transform = transform
-        self.window = Window(window_size * scale)
+        self.window = Window(int(window_size * scale))
 
     def __len__(self) -> int:
         return len(self.indeces)
@@ -212,6 +215,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         window_size: int = 32,
         scale: int = 1,
         transform: Optional[Callable] = None,
+        dynamics_in_mm: bool = True,
     ) -> None:
         super().__init__(
             occupancy,
@@ -220,6 +224,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
             output_channels=8,
             scale=scale,
             transform=transform,
+            dynamics_in_mm=dynamics_in_mm,
         )
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:

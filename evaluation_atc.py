@@ -51,7 +51,7 @@ occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 occupancy.origin = [-60.0, -40.0, 0.0]
 tracks = convert_grid(grid)
 
-id_string = f"_w{WINDOW_SIZE}_s{SCALE}_t_{EPOCHS}"
+id_string = f"_w{WINDOW_SIZE}_s{SCALE}_synthatc_t_{EPOCHS}"
 
 net = DiscreteDirectional(WINDOW_SIZE)
 window = Window(WINDOW_SIZE * SCALE)

@@ -49,7 +49,7 @@ grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 tracks = convert_matlab(TRACKS_DATA)
 
-id_string = f"_w{WINDOW_SIZE}_s{SCALE}_t_{EPOCHS}"
+id_string = f"_w{WINDOW_SIZE}_s{SCALE}_synthatc_t_{EPOCHS}"
 
 net = DiscreteDirectional(WINDOW_SIZE)
 window = Window(WINDOW_SIZE * SCALE)
@@ -163,6 +163,7 @@ print(
 print("Optimal model")
 
 evaluation_ids = range(len(tracks))
+
 # evaluation_ids = [5101]  # straight track
 # evaluation_ids = [4110]  # track with corners
 # evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]

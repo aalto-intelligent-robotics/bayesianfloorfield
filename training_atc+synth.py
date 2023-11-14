@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 import torchvision.transforms as transforms
+from matplotlib import pyplot as plt
 from torch.utils.data import ConcatDataset, DataLoader, WeightedRandomSampler
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -42,14 +43,14 @@ sys.modules["Grid"] = Grid
 sys.modules["Models"] = Models
 
 # Change BASE_PATH to the folder where data and models are located
-BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
+BASE_PATH = Path("/home/francesco/deep-flow/data/ATC/")
 BASE_PATH_SYNTH = Path("/home/francesco/deep-flow/data/Rex/")
 
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
-MAP_METADATA_SYNTH = BASE_PATH_SYNTH / "randomenvimg_x20.yaml"
+MAP_METADATA_SYNTH = BASE_PATH_SYNTH / "randomenvimg_1_border.yaml"
 GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional.p"
 GRID_TRAIN_SYNTH_DATA = (
-    BASE_PATH_SYNTH / "discrete_directional_randomenv_x20.p"
+    BASE_PATH_SYNTH / "discrete_directional_randomenv_1_x5.p"
 )
 GRID_TEST_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
 
@@ -59,12 +60,12 @@ dyn_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 dyn_train_synth: Grid.Grid = pickle.load(open(GRID_TRAIN_SYNTH_DATA, "rb"))
 dyn_test: Grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 
-MapVisualisation(dyn_train, occ).show(occ_overlay=True)
+# MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 
 # %%
 window_size = 64
 scale = 8
-scale_synth = scale  # / 20
+scale_synth = 8 / 5
 
 # transform = None
 transform = transforms.Compose(
@@ -92,6 +93,7 @@ trainset_synth = DiscreteDirectionalDataset(
     window_size=window_size,
     scale=scale_synth,
     transform=transform,
+    dynamics_in_mm=False,
 )
 valset = DiscreteDirectionalDataset(
     occupancy=occ, dynamics=dyn_test, window_size=window_size, scale=scale
@@ -142,6 +144,11 @@ trainer = Trainer(
     device=device,
     writer=writer,
 )
+
+# %% Show sample input
+
+plt.imshow(next(iter(trainloader))[0][0][0], cmap="gray")
+plt.plot(32, 32, "o", markersize=1)
 
 # %% Train
 
