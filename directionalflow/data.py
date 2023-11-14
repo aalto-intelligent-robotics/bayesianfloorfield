@@ -143,7 +143,7 @@ class PeopleFlowDataset(Dataset):
         dynamics: Grid,
         window_size: int,
         output_channels: int,
-        scale: int = 1,
+        scale: float = 1,
         transform: Optional[Callable] = None,
         dynamics_in_mm: bool = True,
     ) -> None:
@@ -213,7 +213,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         occupancy: OccupancyMap,
         dynamics: Grid,
         window_size: int = 32,
-        scale: int = 1,
+        scale: float = 1,
         transform: Optional[Callable] = None,
         dynamics_in_mm: bool = True,
     ) -> None:

@@ -60,7 +60,7 @@ dyn_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 dyn_train_synth: Grid.Grid = pickle.load(open(GRID_TRAIN_SYNTH_DATA, "rb"))
 dyn_test: Grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 
-# MapVisualisation(dyn_train, occ).show(occ_overlay=True)
+MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 
 # %%
 window_size = 64
