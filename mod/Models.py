@@ -95,3 +95,54 @@ class DiscreteDirectional(Cell):
             self.bins[key]["probability"] = float(
                 len(self.bins[key]["data"].index)
             ) / float(len(self.data.index))
+
+
+class BayesianDiscreteDirectional(Cell):
+    """
+    Bayesian Floor Filed
+    """
+
+    def __init__(self, coords, index, resolution, bin_count=8):
+        super().__init__(coords, index, resolution)
+        self.half_split = np.pi / bin_count
+        self.directions = np.arange(0, _2PI, _2PI / bin_count)
+        self.priors = np.ones_like(self.directions) / bin_count
+        self.alpha = 0.0
+
+        self.bins = {
+            d: {"data": pd.DataFrame(), "probability": 0, "mean": 0}
+            for d in self.directions
+        }
+
+    def assign_prior(self, priors: np.ndarray, alpha: float):
+        assert self.priors.shape == priors.shape
+        assert (priors >= 0).all(), "Prior contains negative probabilities"
+        assert np.isclose(
+            np.sum(priors), 1
+        ), "Not all probability distributions in the prior sum to 1"
+        assert alpha > 0, "Alpha should be positive"
+        self.priors = priors
+        self.alpha = alpha
+
+    def __get_bin(self, orientation):
+        for i, d in enumerate(self.directions):
+            if np.abs(d - (orientation % _2PI)) <= self.half_split:
+                return i
+        return 0
+
+    def update_model(self, total_observations):
+        # TODO implement computation of mean
+        self.probability = self.observation_count / total_observations
+        bins = self.data["motion_angle"].apply(self.__get_bin).to_numpy()
+        for i, b in enumerate(bins):
+            direction = self.directions[b]
+            self.bins[direction]["data"] = self.bins[direction]["data"].append(
+                self.data.iloc[i]
+            )
+        for i, key in enumerate(self.bins):
+            posterior = self.priors[i] * self.alpha + len(
+                self.bins[key]["data"].index
+            )
+            self.bins[key]["probability"] = posterior / (
+                np.sum(self.priors) * self.alpha + len(self.data.index)
+            )

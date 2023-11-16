@@ -12,7 +12,6 @@ ch.setFormatter(formatter)
 
 class Grid:
     def __init__(self, origin=None, resolution=None, model=None):
-
         # setting logging
         self.log = logging.getLogger(self.__class__.__name__)
         self.log.setLevel(logging.DEBUG)
@@ -66,3 +65,8 @@ def move_grid_origin(grid, new_origin):
         cell.coords["y"] = cell.coords["y"] - delta_origin[1]
     new_grid.origin = new_origin
     return new_grid
+
+
+def assign_prior_to_grid(grid, priors, alpha):
+    for cell in grid.cells.values():
+        cell.assign_prior(priors, alpha)

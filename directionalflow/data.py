@@ -12,7 +12,7 @@ from mod.OccupancyMap import OccupancyMap
 
 
 def get_directional_prob(bins: dict) -> Sequence[float]:
-    # Encodes dynamics in order: [E, NE, ...]
+    """Encodes dynamics in order: [E, NE, ...]"""
     return [
         bins[d.rad]["probability"] if d.rad in bins else 0.0 for d in Direction
     ]
