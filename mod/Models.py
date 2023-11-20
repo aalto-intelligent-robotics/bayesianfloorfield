@@ -27,7 +27,7 @@ class Cell:
     def __init__(self, coords, index, resolution):
         # logging
         self.log = logging.getLogger(self.__class__.__name__)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.INFO)
         self.log.addHandler(ch)
 
         self.resolution = resolution
@@ -37,7 +37,7 @@ class Cell:
         self.observation_count = 0
         self.probability = 0
         # logging
-        self.log.info("At creation parameters are {}".format(vars(self)))
+        self.log.debug("At creation parameters are {}".format(vars(self)))
 
     @property
     def center(self):
@@ -54,7 +54,7 @@ class Cell:
         self.data = self.data.append(pd.DataFrame(data).transpose())
         self.observation_count = self.observation_count + 1
         # logging
-        self.log.info(
+        self.log.debug(
             "Cell {} now have {}({}) data points".format(
                 self.index, len(self.data.index), self.observation_count
             )
@@ -132,6 +132,8 @@ class BayesianDiscreteDirectional(Cell):
 
     def update_model(self, total_observations):
         # TODO implement computation of mean
+        for direction in self.directions:
+            self.bins[direction]["data"] = pd.DataFrame()
         self.probability = self.observation_count / total_observations
         bins = self.data["motion_angle"].apply(self.__get_bin).to_numpy()
         for i, b in enumerate(bins):
@@ -139,10 +141,11 @@ class BayesianDiscreteDirectional(Cell):
             self.bins[direction]["data"] = self.bins[direction]["data"].append(
                 self.data.iloc[i]
             )
-        for i, key in enumerate(self.bins):
-            posterior = self.priors[i] * self.alpha + len(
-                self.bins[key]["data"].index
-            )
-            self.bins[key]["probability"] = posterior / (
+        for i, bin in enumerate(self.bins.values()):
+            posterior = self.priors[i] * self.alpha + len(bin["data"].index)
+            bin["probability"] = posterior / (
                 np.sum(self.priors) * self.alpha + len(self.data.index)
             )
+        assert np.isclose(
+            np.sum([bin["probability"] for bin in self.bins.values()]), 1
+        )

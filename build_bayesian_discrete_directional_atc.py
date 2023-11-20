@@ -25,12 +25,27 @@ else:
         model=BayesianDiscreteDirectional,
     )
     total_observations = 0
+
+    print("Processing prior")
+    assign_prior_to_grid(g, priors=np.ones(8) / 8, alpha=100)
+    g.update_model()
+    filename = f"{pickle_path}_{total_observations:07d}.p"
+    pickle.dump(g, open(filename, "wb"))
+    print(f"** Saved {filename}")
+
     for chunk in input_file:
+        print(
+            f"Processing chunk [{total_observations}-"
+            f"{total_observations + len(chunk.index)}]"
+        )
         g.add_data(chunk)
         total_observations = total_observations + len(chunk.index)
         assign_prior_to_grid(g, priors=np.ones(8) / 8, alpha=100)
+        print("** Chunk processed, updating model...")
         g.update_model()
-        pickle.dump(g, open(f"{pickle_path}_{total_observations}.p", "wb"))
+        filename = f"{pickle_path}_{total_observations:07d}.p"
+        pickle.dump(g, open(filename, "wb"))
+        print(f"** Saved {filename}")
 
 occupancy = OccupancyMap.from_yaml(
     local["dataset_folder"] + "localization_grid.yaml"

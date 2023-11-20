@@ -10,8 +10,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
-from PIL import Image
 from tqdm import tqdm
 
 from directionalflow.evaluation import (
@@ -19,10 +17,7 @@ from directionalflow.evaluation import (
     pixels2grid,
     track2pixels,
     track_likelihood_model,
-    track_likelihood_net,
 )
-from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import Window, estimate_dynamics, plot_quivers
 from mod import Grid, Models
 from mod.OccupancyMap import OccupancyMap
 
@@ -33,32 +28,21 @@ sys.modules["Models"] = Models
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
 
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
-GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional.p"
-GRID_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
+GRID_BAYES_DATA = {
+    i: BASE_PATH / "models" / "bayes" / f"discrete_directional_{i:07d}.p"
+    for i in range(0, 3100001, 100000)
+}
+GRID_FULL_DATA = BASE_PATH / "models" / "discrete_directional.p"
+GRID_DATA = BASE_PATH / "models" / "discrete_directional.p"
 
-EPOCHS = 100
-WINDOW_SIZE = 64
-SCALE = 8
-# GRID_SCALE = SCALE
 GRID_SCALE = 20
-
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
 
 grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
-grid_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
+grid_full: Grid.Grid = pickle.load(open(GRID_FULL_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 occupancy.origin = [-60.0, -40.0, 0.0]
-tracks = convert_grid(grid)
-
-id_string = f"_w{WINDOW_SIZE}_s{SCALE}_t_{EPOCHS}"
-
-net = DiscreteDirectional(WINDOW_SIZE)
-window = Window(WINDOW_SIZE * SCALE)
-
-path = f"models/people_net{id_string}.pth"
-checkpoint = torch.load(path)["model_state_dict"]
-net.load_state_dict(checkpoint)
+tracks = convert_grid(grid_full)
 
 
 def show_occupancy(occupancy: OccupancyMap) -> None:
@@ -110,47 +94,40 @@ for id in ids:
 
 # %%
 
-center = (691, 925)
-inputs = (
-    np.asarray(
-        occupancy.binary_map.crop(window.corners(center)).resize(
-            (WINDOW_SIZE, WINDOW_SIZE), Image.ANTIALIAS
-        ),
-        "float",
-    )
-    / 255.0
-)
-
-outputs = estimate_dynamics(net, inputs, device=DEVICE, batch_size=32)
-
-plot_quivers(inputs, outputs, dpi=PLOT_DPI)
-plt.plot(WINDOW_SIZE // 2, WINDOW_SIZE // 2, "o", markersize=0.5)
-
-# %%
-
-print(f"Deep model: people_net{id_string}")
+print("Bayesian model")
 
 evaluation_ids = range(len(tracks))
 # evaluation_ids = [5101]
 # evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
 # evaluation_ids = ids
 
-like = 0.0
-skipped = 0
-for id in tqdm(evaluation_ids):
-    p = track2pixels(tracks[id], occupancy)
-    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
-    if t.shape[1] > 1:
-        like += track_likelihood_net(
-            t, occupancy, WINDOW_SIZE, SCALE, net, DEVICE
+bayes_data = {}
+for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
+    print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
+    grid_bayes: Grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
+    like = 0.0
+    skipped = 0
+    for id in tqdm(evaluation_ids):
+        p = track2pixels(tracks[id], occupancy)
+        t = pixels2grid(
+            p, occupancy.resolution * GRID_SCALE, occupancy.resolution
         )
-    else:
-        skipped += 1
-print(
-    f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-    f"{like / (len(evaluation_ids)-skipped):.3f} "
-    f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
-)
+        if t.shape[1] > 1:
+            track_like = track_likelihood_model(t, occupancy, grid_bayes)
+            like += track_like
+        else:
+            skipped += 1
+    bayes_data[iterations] = {
+        "total_like": like,
+        "avg_like": like / (len(evaluation_ids) - skipped),
+        "num_tracks": len(evaluation_ids) - skipped,
+        "skipped": skipped,
+    }
+    print(
+        f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
+        f"{like / (len(evaluation_ids)-skipped):.3f} "
+        f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
+    )
 
 # %%
 
@@ -167,7 +144,7 @@ for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        like += track_likelihood_model(t, occupancy, grid_train)
+        like += track_likelihood_model(t, occupancy, grid_full)
     else:
         skipped += 1
 print(

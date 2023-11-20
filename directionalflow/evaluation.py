@@ -140,6 +140,6 @@ def track_likelihood_model(
             like += 1 / 8
             missing += 1
             matches += 1
-    if missing:
-        print(f"missing: {missing}")
+    # if missing:
+    #    print(f"missing: {missing}")
     return like / matches if matches else like

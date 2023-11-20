@@ -22,7 +22,10 @@ class MapVisualisation:
 
     def show(self, occ_overlay=False, dpi=100):
         self.__show_raw(dpi)
-        if self.mod.model == Models.DiscreteDirectional:
+        if (
+            self.mod.model == Models.DiscreteDirectional
+            or self.mod.model == Models.BayesianDiscreteDirectional
+        ):
             self.__show_discrete_directional(occ_overlay, dpi)
 
         plt.show()
