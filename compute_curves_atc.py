@@ -26,14 +26,19 @@ sys.modules["Models"] = Models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
+BAYES_MAX_DATA = 3121209
+BAYES_INCREMENT = 100000
 
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
 GRID_BAYES_DATA = {
-    i: BASE_PATH / "models" / "bayes" / f"discrete_directional_{i:07d}.p"
-    for i in range(0, 3100001, 100000)
+    i: BASE_PATH / "models" / f"discrete_directional_{i:07d}.p"
+    for i in range(0, BAYES_MAX_DATA, BAYES_INCREMENT)
 }
+GRID_BAYES_DATA[BAYES_MAX_DATA] = (
+    BASE_PATH / "models" / f"discrete_directional_{BAYES_MAX_DATA:07d}.p"
+)
 GRID_FULL_DATA = BASE_PATH / "models" / "discrete_directional.p"
-GRID_DATA = BASE_PATH / "models" / "discrete_directional.p"
+GRID_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
 
 GRID_SCALE = 20
 PLOT_DPI = 800
@@ -42,7 +47,7 @@ grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 grid_full: Grid.Grid = pickle.load(open(GRID_FULL_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 occupancy.origin = [-60.0, -40.0, 0.0]
-tracks = convert_grid(grid_full)
+tracks = convert_grid(grid)
 
 
 def show_occupancy(occupancy: OccupancyMap) -> None:
