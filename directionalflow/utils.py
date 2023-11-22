@@ -14,7 +14,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import trange
 
 from directionalflow.nets import PeopleFlow
-from mod.OccupancyMap import OccupancyMap
+from mod.occupancy import OccupancyMap
 
 logger = logging.getLogger(__name__)
 

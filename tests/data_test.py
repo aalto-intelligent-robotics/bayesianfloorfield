@@ -3,6 +3,7 @@ from typing import Callable, Sequence
 import numpy as np
 import pytest
 import torchvision.transforms as transforms
+
 from directionalflow.data import (
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,
@@ -10,7 +11,7 @@ from directionalflow.data import (
     RandomVerticalFlipPeopleFlow,
     get_directional_prob,
 )
-from mod.Grid import Grid
+from mod.grid import Grid
 
 
 @pytest.mark.parametrize(

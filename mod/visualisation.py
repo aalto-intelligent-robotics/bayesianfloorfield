@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize
 
-from . import Models
+from . import models
 
 # TODO add logging and manual
 # TODO fix colormap depending on the probability
@@ -23,8 +23,8 @@ class MapVisualisation:
     def show(self, occ_overlay=False, dpi=100):
         self.__show_raw(dpi)
         if (
-            self.mod.model == Models.DiscreteDirectional
-            or self.mod.model == Models.BayesianDiscreteDirectional
+            self.mod.model == models.DiscreteDirectional
+            or self.mod.model == models.BayesianDiscreteDirectional
         ):
             self.__show_discrete_directional(occ_overlay, dpi)
 

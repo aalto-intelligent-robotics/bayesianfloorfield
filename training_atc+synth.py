@@ -31,16 +31,16 @@ from directionalflow.utils import (
     plot_quivers,
     random_input,
 )
-from mod import Grid, Models
-from mod.OccupancyMap import OccupancyMap
-from mod.Visualisation import MapVisualisation
+from mod import grid, models
+from mod.occupancy import OccupancyMap
+from mod.visualisation import MapVisualisation
 
 logging.basicConfig(level=logging.INFO)
 
 # %% Network and dataset setup
 
-sys.modules["Grid"] = Grid
-sys.modules["Models"] = Models
+sys.modules["Grid"] = grid
+sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/home/francesco/deep-flow/data/ATC/")
@@ -56,9 +56,9 @@ GRID_TEST_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
 
 occ = OccupancyMap.from_yaml(MAP_METADATA)
 occ_synth = OccupancyMap.from_yaml(MAP_METADATA_SYNTH)
-dyn_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
-dyn_train_synth: Grid.Grid = pickle.load(open(GRID_TRAIN_SYNTH_DATA, "rb"))
-dyn_test: Grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
+dyn_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
+dyn_train_synth: grid.Grid = pickle.load(open(GRID_TRAIN_SYNTH_DATA, "rb"))
+dyn_test: grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 
 MapVisualisation(dyn_train, occ).show(occ_overlay=True)
 

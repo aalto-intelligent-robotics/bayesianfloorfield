@@ -2,6 +2,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from torch import device, float32
+
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import (
     Direction,
@@ -11,8 +13,7 @@ from directionalflow.utils import (
     random_input,
     scale_quivers,
 )
-from mod.OccupancyMap import OccupancyMap
-from torch import device, float32
+from mod.occupancy import OccupancyMap
 
 
 @pytest.mark.parametrize(

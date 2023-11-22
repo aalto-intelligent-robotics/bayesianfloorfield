@@ -10,7 +10,7 @@ from tqdm import tqdm
 from directionalflow.data import get_directional_prob
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Direction, OccupancyMap, Window
-from mod.Grid import Grid
+from mod.grid import Grid
 
 
 def convert_matlab(track_path: Path) -> np.ndarray:

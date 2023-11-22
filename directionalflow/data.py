@@ -7,8 +7,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 from directionalflow.utils import Direction, RowColumnPair, Window
-from mod.Grid import Grid
-from mod.OccupancyMap import OccupancyMap
+from mod.grid import Grid
+from mod.occupancy import OccupancyMap
 
 
 def get_directional_prob(bins: dict) -> Sequence[float]:

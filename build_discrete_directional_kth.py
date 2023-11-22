@@ -2,11 +2,11 @@ import pickle
 
 import pandas as pd
 
-from mod.Grid import Grid
-from mod.Helpers import get_local_settings
-from mod.Models import DiscreteDirectional
-from mod.OccupancyMap import OccupancyMap
-from mod.Visualisation import MapVisualisation
+from mod.grid import Grid
+from mod.models import DiscreteDirectional
+from mod.occupancy import OccupancyMap
+from mod.utils import get_local_settings
+from mod.visualisation import MapVisualisation
 
 use_pickle = False
 

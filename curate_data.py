@@ -1,8 +1,8 @@
 import argparse
 import logging
 
-from mod.Curator import DataCurator
-from mod.Helpers import extended_validator, get_local_settings
+from mod.curation import DataCurator
+from mod.utils import extended_validator, get_local_settings
 
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)

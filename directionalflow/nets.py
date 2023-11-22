@@ -1,9 +1,10 @@
 from functools import partial
 from typing import Type
 
-import mod.Models as mod
-import octopytorch as octo
 from torch import nn
+
+import mod.models as mod
+import octopytorch as octo
 
 DynModel = Type[mod.DiscreteDirectional]
 

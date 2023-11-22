@@ -3,11 +3,11 @@ import pickle
 import numpy as np
 import pandas as pd
 
-from mod.Grid import Grid, assign_prior_to_grid
-from mod.Helpers import get_local_settings
-from mod.Models import BayesianDiscreteDirectional
-from mod.OccupancyMap import OccupancyMap
-from mod.Visualisation import MapVisualisation
+from mod.grid import Grid, assign_prior_to_grid
+from mod.models import BayesianDiscreteDirectional
+from mod.occupancy import OccupancyMap
+from mod.utils import get_local_settings
+from mod.visualisation import MapVisualisation
 
 use_pickle = False
 

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from directionalflow.evaluation import (
     pixels2grid,
     track2pixels,
@@ -7,8 +8,8 @@ from directionalflow.evaluation import (
     track_likelihood_net,
 )
 from directionalflow.nets import DiscreteDirectional
-from mod.Grid import Grid
-from mod.OccupancyMap import OccupancyMap
+from mod.grid import Grid
+from mod.occupancy import OccupancyMap
 
 
 def test_track2pixels(occupancy: OccupancyMap) -> None:

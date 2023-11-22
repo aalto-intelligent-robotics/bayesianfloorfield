@@ -23,11 +23,11 @@ from directionalflow.evaluation import (
 )
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Window, estimate_dynamics, plot_quivers
-from mod import Grid, Models
-from mod.OccupancyMap import OccupancyMap
+from mod import grid, models
+from mod.occupancy import OccupancyMap
 
-sys.modules["Grid"] = Grid
-sys.modules["Models"] = Models
+sys.modules["Grid"] = grid
+sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/KTH_track/")
@@ -45,7 +45,7 @@ GRID_SCALE = 20
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
 
-grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
+grid: grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 tracks = convert_matlab(TRACKS_DATA)
 

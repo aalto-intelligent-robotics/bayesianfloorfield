@@ -1,15 +1,16 @@
 from unittest import mock
 
-import mod.Models as mod
 import pytest
-from directionalflow.data import DiscreteDirectionalDataset
-from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import Trainer
-from mod.Grid import Grid
-from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.optim import SGD
 from torch.utils.data import DataLoader
+
+import mod.models as mod
+from directionalflow.data import DiscreteDirectionalDataset
+from directionalflow.nets import DiscreteDirectional
+from directionalflow.utils import Trainer
+from mod.grid import Grid
+from mod.occupancy import OccupancyMap
 
 
 @pytest.fixture

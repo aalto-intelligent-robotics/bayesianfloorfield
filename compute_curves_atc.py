@@ -18,11 +18,11 @@ from directionalflow.evaluation import (
     track2pixels,
     track_likelihood_model,
 )
-from mod import Grid, Models
-from mod.OccupancyMap import OccupancyMap
+from mod import grid, models
+from mod.occupancy import OccupancyMap
 
-sys.modules["Grid"] = Grid
-sys.modules["Models"] = Models
+sys.modules["Grid"] = grid
+sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
@@ -43,8 +43,8 @@ GRID_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
 GRID_SCALE = 20
 PLOT_DPI = 800
 
-grid: Grid.Grid = pickle.load(open(GRID_DATA, "rb"))
-grid_full: Grid.Grid = pickle.load(open(GRID_FULL_DATA, "rb"))
+grid: grid.Grid = pickle.load(open(GRID_DATA, "rb"))
+grid_full: grid.Grid = pickle.load(open(GRID_FULL_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 occupancy.origin = [-60.0, -40.0, 0.0]
 tracks = convert_grid(grid)
@@ -109,7 +109,7 @@ evaluation_ids = range(len(tracks))
 bayes_data = {}
 for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
-    grid_bayes: Grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
+    grid_bayes: grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
     like = 0.0
     skipped = 0
     for id in tqdm(evaluation_ids):
