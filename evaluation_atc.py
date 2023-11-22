@@ -45,11 +45,11 @@ GRID_SCALE = 20
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
 
-grid: grid.Grid = pickle.load(open(GRID_DATA, "rb"))
+grid_test: grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 grid_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 occupancy.origin = [-60.0, -40.0, 0.0]
-tracks = convert_grid(grid)
+tracks = convert_grid(grid_test)
 
 id_string = f"_w{WINDOW_SIZE}_s{SCALE}_synthatc_t_{EPOCHS}"
 
@@ -191,7 +191,7 @@ for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        like += track_likelihood_model(t, occupancy, grid)
+        like += track_likelihood_model(t, occupancy, grid_test)
     else:
         skipped += 1
 print(

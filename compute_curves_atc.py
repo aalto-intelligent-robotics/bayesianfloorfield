@@ -43,11 +43,11 @@ GRID_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
 GRID_SCALE = 20
 PLOT_DPI = 800
 
-grid: grid.Grid = pickle.load(open(GRID_DATA, "rb"))
+grid_test: grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 grid_full: grid.Grid = pickle.load(open(GRID_FULL_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 occupancy.origin = [-60.0, -40.0, 0.0]
-tracks = convert_grid(grid)
+tracks = convert_grid(grid_test)
 
 
 def show_occupancy(occupancy: OccupancyMap) -> None:
@@ -173,7 +173,7 @@ for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        like += track_likelihood_model(t, occupancy, grid)
+        like += track_likelihood_model(t, occupancy, grid_test)
     else:
         skipped += 1
 print(
