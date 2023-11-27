@@ -58,4 +58,4 @@ jobs:
           if [ -f requirements_dev.txt ]; then pip install -r requirements_dev.txt; fi
       - name: Test with pytest
         run: |
-          pytest --cov=directionalflow --cov-report term-missing:skip-covered
+          pytest --cov=directionalflow --cov=mod --cov-report term-missing:skip-covered

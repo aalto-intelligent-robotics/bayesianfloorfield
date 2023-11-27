@@ -32,4 +32,4 @@ mypy:
 unit_test:
   stage: Test
   script:
-    - pytest --cov=directionalflow --cov-report term-missing:skip-covered
+    - pytest --cov=directionalflow  --cov=mod --cov-report term-missing:skip-covered
