@@ -9,22 +9,7 @@ from directionalflow.data import (
     RandomHorizontalFlipPeopleFlow,
     RandomRotationPeopleFlow,
     RandomVerticalFlipPeopleFlow,
-    get_directional_prob,
 )
-from mod.grid import Grid
-
-
-@pytest.mark.parametrize(
-    ["cell", "d_expected"],
-    [
-        ((0, 0), [0.5, 0, 0, 0, 0, 0.5, 0, 0]),
-        ((0, 1), [0, 1.0, 0, 0, 0, 0, 0, 0]),
-    ],
-)
-def test_get_directional_prob(
-    cell: tuple, d_expected: Sequence, grid: Grid
-) -> None:
-    assert get_directional_prob(grid.cells[cell].bins) == d_expected
 
 
 @pytest.mark.parametrize(

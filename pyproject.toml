@@ -13,8 +13,7 @@ exclude = '''
 # Global options
 [tool.mypy]
 mypy_path = ".stubs"
-exclude = "(octopytorch/|mod/)"
-disallow_any_unimported = true
+exclude = "octopytorch/"
 disallow_untyped_defs = true
 no_implicit_optional = true
 show_error_codes = true 

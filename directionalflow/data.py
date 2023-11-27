@@ -8,14 +8,8 @@ from torch.utils.data import Dataset
 
 from directionalflow.utils import Direction, RowColumnPair, Window
 from mod.grid import Grid
+from mod.models import DiscreteDirectional, RCCoords
 from mod.occupancy import OccupancyMap
-
-
-def get_directional_prob(bins: dict) -> Sequence[float]:
-    """Encodes dynamics in order: [E, NE, ...]"""
-    return [
-        bins[d.rad]["probability"] if d.rad in bins else 0.0 for d in Direction
-    ]
 
 
 class _RandomFlipPeopleFlow(torch.nn.Module):
@@ -228,5 +222,6 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         )
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
-        bins = self.dynamics.cells[center].bins
-        return np.array(get_directional_prob(bins), dtype=np.float32)
+        cell = self.dynamics.cells[RCCoords(center[0], center[1])]
+        assert isinstance(cell, DiscreteDirectional)
+        return np.array(cell.bin_probabilities, dtype=np.float32)

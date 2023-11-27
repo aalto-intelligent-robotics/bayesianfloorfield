@@ -1,19 +1,23 @@
 import logging
+from functools import cached_property
+from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
-
-logger = logging.getLogger("Model Logger")
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeFloat,
+    NonNegativeInt,
+    PositiveFloat,
+    ValidationInfo,
+    field_validator,
 )
-ch.setFormatter(formatter)
-logger.addHandler(ch)
 
-_2PI = np.pi * 2
+from mod.utils import _2PI
+
+logger = logging.getLogger(__name__)
 
 
 def cart2pol(x, y):
@@ -22,43 +26,60 @@ def cart2pol(x, y):
     return (rho, phi)
 
 
-class Cell:
-    # TODO Description
-    def __init__(self, coords, index, resolution):
-        # logging
-        self.log = logging.getLogger(self.__class__.__name__)
-        self.log.setLevel(logging.INFO)
-        self.log.addHandler(ch)
+class XYCoords(NamedTuple):
+    x: float
+    y: float
 
-        self.resolution = resolution
-        self.coords = {"x": coords[1], "y": coords[0]}
-        self.index = {"row": index[0], "column": index[1]}
-        self.data = None
-        self.observation_count = 0
-        self.probability = 0
-        # logging
-        self.log.debug("At creation parameters are {}".format(vars(self)))
+
+class RCCoords(NamedTuple):
+    row: NonNegativeInt
+    column: NonNegativeInt
+
+
+class Cell(BaseModel):
+    # TODO previously flipped (x = coords[1], y = coords[0])
+    coords: XYCoords = Field(frozen=True)
+    index: RCCoords = Field(frozen=True)
+    resolution: PositiveFloat = Field(frozen=True)
+    probability: float = Field(default=0, ge=0, le=1)
+    data: pd.DataFrame = Field(default=pd.DataFrame())
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True, validate_assignment=True
+    )
 
     @property
-    def center(self):
-        return {
-            "x": self.coords["x"] + self.resolution / 2,
-            "y": self.coords["y"] + self.resolution / 2,
-        }
+    def observation_count(self) -> int:
+        return len(self.data.index)
 
-    def add_data(self, data):
-        # TODO Description
-        if self.data is None:
-            self.data = pd.DataFrame()
-
-        self.data = self.data.append(pd.DataFrame(data).transpose())
-        self.observation_count = self.observation_count + 1
-        # logging
-        self.log.debug(
-            "Cell {} now have {}({}) data points".format(
-                self.index, len(self.data.index), self.observation_count
-            )
+    @cached_property
+    def center(self) -> XYCoords:
+        return XYCoords(
+            x=self.coords.x + self.resolution / 2,
+            y=self.coords.y + self.resolution / 2,
         )
+
+    def add_data(self, data: pd.DataFrame) -> None:
+        self.data = pd.concat([self.data, data])
+
+    def compute_cell_probability(self, total_observations: int) -> None:
+        if total_observations:
+            self.probability = self.observation_count / total_observations
+        elif self.observation_count:
+            raise ValueError(
+                "Total observations cannot be zero if cell observation count "
+                "is not zero"
+            )
+
+    def update_model(self, total_observations: int) -> None:
+        self.compute_cell_probability(total_observations)
+
+
+class ProbabilityBin(BaseModel):
+    probability: float = Field(default=0, ge=0, le=1)
+    data: pd.DataFrame = Field(default=pd.DataFrame())
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True, validate_assignment=True
+    )
 
 
 class DiscreteDirectional(Cell):
@@ -66,86 +87,104 @@ class DiscreteDirectional(Cell):
     Floor Filed
     """
 
-    def __init__(self, coords, index, resolution, bin_count=8):
-        super().__init__(coords, index, resolution)
-        self.half_split = np.pi / bin_count
-        self.directions = np.arange(0, _2PI, _2PI / bin_count)
+    bin_count: int = Field(frozen=True, default=8)
+    bins: list[ProbabilityBin] = Field(default=[], validate_default=True)
 
-        self.bins = {
-            d: {"data": pd.DataFrame(), "probability": 0, "mean": 0}
-            for d in self.directions
-        }
+    @field_validator("bins")
+    @classmethod
+    def default_bins(
+        cls, v: list[ProbabilityBin], values: ValidationInfo
+    ) -> list[ProbabilityBin]:
+        return (
+            v
+            if v
+            else [
+                ProbabilityBin(probability=1 / values.data["bin_count"])
+                for _ in range(values.data["bin_count"])
+            ]
+        )
 
-    def __get_bin(self, orientation):
+    @cached_property
+    def half_split(self) -> float:
+        return np.pi / self.bin_count
+
+    @cached_property
+    def directions(self) -> np.ndarray:
+        return np.arange(0, _2PI, _2PI / self.bin_count)
+
+    @property
+    def bin_probabilities(self) -> list[float]:
+        return [bin.probability for bin in self.bins]
+
+    def bin_from_angle(self, rad: float) -> int:
         for i, d in enumerate(self.directions):
-            if np.abs(d - (orientation % _2PI)) <= self.half_split:
+            if np.abs(d - (rad % _2PI)) <= self.half_split:
                 return i
         return 0
 
-    def update_model(self, total_observations):
-        # TODO implement computation of mean
-        self.probability = self.observation_count / total_observations
-        bins = self.data["motion_angle"].apply(self.__get_bin).to_numpy()
-        for i, b in enumerate(bins):
-            direction = self.directions[b]
-            self.bins[direction]["data"] = self.bins[direction]["data"].append(
-                self.data.iloc[i]
+    def update_bin_data(self) -> None:
+        if not self.data.empty:
+            data_bins = (
+                self.data["motion_angle"].apply(self.bin_from_angle).to_numpy()
             )
-        for key in self.bins:
-            self.bins[key]["probability"] = float(
-                len(self.bins[key]["data"].index)
-            ) / float(len(self.data.index))
+            for i in np.unique(data_bins):
+                self.bins[i].data = self.data.iloc[data_bins == i]
+
+    def update_bin_probabilities(self) -> None:
+        if not self.data.empty:
+            for bin in self.bins:
+                bin.probability = len(bin.data.index) / self.observation_count
+            assert np.isclose(
+                sum(self.bin_probabilities), 1
+            ), f"Bin probability sum equal to {sum(self.bin_probabilities)}."
+
+    def update_model(self, total_observations: int) -> None:
+        self.compute_cell_probability(total_observations)
+        self.update_bin_data()
+        self.update_bin_probabilities()
 
 
-class BayesianDiscreteDirectional(Cell):
+class BayesianDiscreteDirectional(DiscreteDirectional):
     """
     Bayesian Floor Filed
     """
 
-    def __init__(self, coords, index, resolution, bin_count=8):
-        super().__init__(coords, index, resolution)
-        self.half_split = np.pi / bin_count
-        self.directions = np.arange(0, _2PI, _2PI / bin_count)
-        self.priors = np.ones_like(self.directions) / bin_count
-        self.alpha = 0.0
+    priors: np.ndarray = Field(default=np.array([]), validate_default=True)
+    alpha: NonNegativeFloat = 0.0
 
-        self.bins = {
-            d: {"data": pd.DataFrame(), "probability": 0, "mean": 0}
-            for d in self.directions
-        }
+    @field_validator("priors")
+    @classmethod
+    def default_priors(
+        cls, v: np.ndarray, values: ValidationInfo
+    ) -> np.ndarray:
+        if v:
+            if (
+                (v.shape) != values.data["bin_count"]
+                or not (v >= 0).all()
+                or not np.isclose(np.sum(v), 1)
+            ):
+                raise ValueError(f"Malformed prior = {v}")
+            return v
+        else:
+            return np.array(
+                [
+                    1 / values.data["bin_count"]
+                    for _ in range(values.data["bin_count"])
+                ]
+            )
 
-    def assign_prior(self, priors: np.ndarray, alpha: float):
-        assert self.priors.shape == priors.shape
-        assert (priors >= 0).all(), "Prior contains negative probabilities"
-        assert np.isclose(
-            np.sum(priors), 1
-        ), "Not all probability distributions in the prior sum to 1"
-        assert alpha > 0, "Alpha should be positive"
+    def update_prior(self, priors: np.ndarray, alpha: float):
         self.priors = priors
         self.alpha = alpha
+        self.update_bin_probabilities()
 
-    def __get_bin(self, orientation):
-        for i, d in enumerate(self.directions):
-            if np.abs(d - (orientation % _2PI)) <= self.half_split:
-                return i
-        return 0
-
-    def update_model(self, total_observations):
-        # TODO implement computation of mean
-        for direction in self.directions:
-            self.bins[direction]["data"] = pd.DataFrame()
-        self.probability = self.observation_count / total_observations
-        bins = self.data["motion_angle"].apply(self.__get_bin).to_numpy()
-        for i, b in enumerate(bins):
-            direction = self.directions[b]
-            self.bins[direction]["data"] = self.bins[direction]["data"].append(
-                self.data.iloc[i]
-            )
-        for i, bin in enumerate(self.bins.values()):
-            posterior = self.priors[i] * self.alpha + len(bin["data"].index)
-            bin["probability"] = posterior / (
-                np.sum(self.priors) * self.alpha + len(self.data.index)
-            )
-        assert np.isclose(
-            np.sum([bin["probability"] for bin in self.bins.values()]), 1
-        )
+    def update_bin_probabilities(self) -> None:
+        if not self.data.empty:
+            for i, bin in enumerate(self.bins):
+                posterior = self.priors[i] * self.alpha + len(bin.data.index)
+                bin.probability = posterior / (
+                    np.sum(self.priors) * self.alpha + len(self.data.index)
+                )
+            assert np.isclose(
+                sum(self.bin_probabilities), 1
+            ), f"Bin probability sum equal to {sum(self.bin_probabilities)}."

@@ -7,7 +7,7 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
-from directionalflow.data import get_directional_prob
+import mod.models as mod
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Direction, OccupancyMap, Window
 from mod.grid import Grid
@@ -132,8 +132,9 @@ def track_likelihood_model(
         grid_row = occupancy_top - 1 - (track[2, i] + delta_origins[0])
         grid_col = track[3, i] + delta_origins[1]
         if (grid_row, grid_col) in grid.cells:
-            cell = grid.cells[(grid_row, grid_col)]
-            pred = get_directional_prob(cell.bins)
+            cell = grid.cells[mod.RCCoords(grid_row, grid_col)]
+            assert isinstance(cell, mod.DiscreteDirectional)
+            pred = cell.bin_probabilities
             like += pred[dir]
             matches += 1
         elif not ignore_missing:

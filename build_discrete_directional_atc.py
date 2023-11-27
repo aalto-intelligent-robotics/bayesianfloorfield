@@ -3,7 +3,7 @@ import pickle
 import pandas as pd
 
 from mod.grid import Grid
-from mod.models import DiscreteDirectional
+from mod.models import DiscreteDirectional, XYCoords
 from mod.occupancy import OccupancyMap
 from mod.utils import get_local_settings
 from mod.visualisation import MapVisualisation
@@ -19,7 +19,9 @@ if use_pickle:
 else:
     input_file = pd.read_csv(csv_path, chunksize=100000)
     g = Grid(
-        origin=(-40000, -40000), resolution=1000, model=DiscreteDirectional
+        origin=XYCoords(-40000, -40000),
+        resolution=1000,
+        model=DiscreteDirectional,
     )
     total_observations = 0
     for chunk in input_file:

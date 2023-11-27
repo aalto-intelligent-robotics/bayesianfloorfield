@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from mod.grid import Grid, assign_prior_to_grid
-from mod.models import BayesianDiscreteDirectional
+from mod.models import BayesianDiscreteDirectional, XYCoords
 from mod.occupancy import OccupancyMap
 from mod.utils import get_local_settings
 from mod.visualisation import MapVisualisation
@@ -20,14 +20,14 @@ if use_pickle:
 else:
     input_file = pd.read_csv(csv_path, chunksize=100000)
     g = Grid(
-        origin=(-40000, -40000),
+        origin=XYCoords(-40000, -40000),
         resolution=1000,
         model=BayesianDiscreteDirectional,
     )
     total_observations = 0
 
     print("Processing prior")
-    assign_prior_to_grid(g, priors=np.ones(8) / 8, alpha=100)
+    assign_prior_to_grid(g, prior=np.ones(8) / 8, alpha=100)
     g.update_model()
     filename = f"{pickle_path}_{total_observations:07d}.p"
     pickle.dump(g, open(filename, "wb"))
@@ -40,7 +40,7 @@ else:
         )
         g.add_data(chunk)
         total_observations = total_observations + len(chunk.index)
-        assign_prior_to_grid(g, priors=np.ones(8) / 8, alpha=100)
+        assign_prior_to_grid(g, prior=np.ones(8) / 8, alpha=100)
         print("** Chunk processed, updating model...")
         g.update_model()
         filename = f"{pickle_path}_{total_observations:07d}.p"
