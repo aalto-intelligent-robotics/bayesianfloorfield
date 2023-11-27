@@ -41,3 +41,4 @@ ignore_missing_imports = true
 #### PyTest ####
 [tool.pytest.ini_options]
 testpaths = "tests"
+addopts = "--cov=directionalflow --cov=mod --cov-report term-missing:skip-covered"
