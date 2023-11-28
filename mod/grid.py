@@ -26,21 +26,27 @@ class Grid(BaseModel):
         return RCCoords(max_r, max_c)
 
     def add_data(self, data: pd.DataFrame) -> None:
-        for _, row in data.iterrows():
-            col_index = int((row["x"] - self.origin[0]) / self.resolution)
-            row_index = int((row["y"] - self.origin[1]) / self.resolution)
-            key = RCCoords(row_index, col_index)
+        data_with_row_col = data.assign(
+            row=((data["y"] - self.origin[1]) / self.resolution).astype(int),
+            col=((data["x"] - self.origin[0]) / self.resolution).astype(int),
+        )
+        row_cols = data_with_row_col[["row", "col"]].drop_duplicates()
+        for _, cell_id in row_cols.iterrows():
+            key = RCCoords(cell_id["row"], cell_id["col"])
             if key not in self.cells:
                 self.cells[key] = self.model(
-                    index=RCCoords(row_index, col_index),
+                    index=key,
                     coords=XYCoords(
-                        col_index * self.resolution + self.origin[0],
-                        row_index * self.resolution + self.origin[1],
+                        cell_id["col"] * self.resolution + self.origin[0],
+                        cell_id["row"] * self.resolution + self.origin[1],
                     ),
                     resolution=self.resolution,
                 )
-            self.cells[key].add_data(row)
-            self.total_count = self.total_count + 1
+            cell_data = data.loc[
+                (data_with_row_col[["row", "col"]] == cell_id).all(axis=1)
+            ]
+            self.cells[key].add_data(cell_data)
+            self.total_count += len(cell_data.index)
 
     def update_model(self) -> None:
         for cell in self.cells.values():

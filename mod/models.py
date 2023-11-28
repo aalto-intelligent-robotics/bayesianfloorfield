@@ -118,17 +118,16 @@ class DiscreteDirectional(Cell):
 
     def bin_from_angle(self, rad: float) -> int:
         for i, d in enumerate(self.directions):
-            if np.abs(d - (rad % _2PI)) <= self.half_split:
+            diff = np.abs(d - (rad % _2PI)) - self.half_split
+            if diff < 0 or np.isclose(diff, 0):
                 return i
         return 0
 
     def update_bin_data(self) -> None:
         if not self.data.empty:
-            data_bins = (
-                self.data["motion_angle"].apply(self.bin_from_angle).to_numpy()
-            )
-            for i in np.unique(data_bins):
-                self.bins[i].data = self.data.iloc[data_bins == i]
+            data_bins = self.data["motion_angle"].apply(self.bin_from_angle)
+            for i in data_bins.drop_duplicates():
+                self.bins[i].data = self.data.loc[data_bins == i]
 
     def update_bin_probabilities(self) -> None:
         if not self.data.empty:
