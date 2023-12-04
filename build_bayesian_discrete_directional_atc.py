@@ -6,20 +6,25 @@ from mod.grid import Grid
 from mod.models import BayesianDiscreteDirectional, XYCoords
 from mod.occupancy import OccupancyMap
 from mod.utils import get_local_settings
-from mod.visualisation import MapVisualisation
+from mod.visualisation import show_all
 
-use_pickle = False
+# ATC_DAY = "20121114"
+ATC_DAY = "20121118"
+
+USE_PICKLE = False
 
 _, local = get_local_settings("config/local_settings_atc.json")
-csv_path = local["dataset_folder"] + "subsampled/atc-20121114_5.csv"
-pickle_path = local["pickle_folder"] + "bayes/discrete_directional"
+csv_path = local["dataset_folder"] + f"subsampled/atc-{ATC_DAY}_5.csv"
+pickle_path = (
+    local["pickle_folder"] + f"bayes/{ATC_DAY}/discrete_directional_{ATC_DAY}"
+)
 
-if use_pickle:
+if USE_PICKLE:
     g = pickle.load(open(pickle_path, "rb"))
 else:
     input_file = pd.read_csv(csv_path, chunksize=100000)
     g = Grid(
-        origin=XYCoords(-40000, -40000),
+        origin=XYCoords(-41000, -40000),
         resolution=1000,
         model=BayesianDiscreteDirectional,
     )
@@ -48,5 +53,4 @@ occupancy = OccupancyMap.from_yaml(
     local["dataset_folder"] + "localization_grid.yaml"
 )
 
-v = MapVisualisation(mod=g, occ=occupancy)
-v.show(occ_overlay=True)
+show_all(grid=g, occ=occupancy, occ_overlay=True)

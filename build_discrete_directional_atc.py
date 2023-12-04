@@ -6,7 +6,7 @@ from mod.grid import Grid
 from mod.models import DiscreteDirectional, XYCoords
 from mod.occupancy import OccupancyMap
 from mod.utils import get_local_settings
-from mod.visualisation import MapVisualisation
+from mod.visualisation import show_all
 
 use_pickle = False
 
@@ -34,5 +34,4 @@ occupancy = OccupancyMap.from_yaml(
     local["dataset_folder"] + "localization_grid.yaml"
 )
 
-v = MapVisualisation(mod=g, occ=occupancy)
-v.show(occ_overlay=True)
+show_all(grid=g, occ=occupancy, occ_overlay=True)

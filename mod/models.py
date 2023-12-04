@@ -84,7 +84,7 @@ class ProbabilityBin(BaseModel):
 
 class DiscreteDirectional(Cell):
     """
-    Floor Filed
+    Floor Field
     """
 
     bin_count: int = Field(frozen=True, default=8)
@@ -145,7 +145,7 @@ class DiscreteDirectional(Cell):
 
 class BayesianDiscreteDirectional(DiscreteDirectional):
     """
-    Bayesian Floor Filed
+    Bayesian Floor Field
     """
 
     priors: np.ndarray = Field(default=np.array([]), validate_default=True)
@@ -156,9 +156,9 @@ class BayesianDiscreteDirectional(DiscreteDirectional):
     def default_priors(
         cls, v: np.ndarray, values: ValidationInfo
     ) -> np.ndarray:
-        if v:
+        if v is not None and v.size != 0:
             if (
-                (v.shape) != values.data["bin_count"]
+                v.size != values.data["bin_count"]
                 or not (v >= 0).all()
                 or not np.isclose(np.sum(v), 1)
             ):

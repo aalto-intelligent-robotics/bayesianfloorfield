@@ -142,19 +142,22 @@ evaluation_ids = range(len(tracks))
 # evaluation_ids = ids
 
 like = 0.0
+matches = 0
 skipped = 0
 for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        like += track_likelihood_net(
+        t_like, t_matches = track_likelihood_net(
             t, occupancy, WINDOW_SIZE, SCALE, net, DEVICE
         )
+        like += t_like
+        matches += t_matches
     else:
         skipped += 1
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-    f"{like / (len(evaluation_ids)-skipped):.3f} "
+    f"{like / matches:.3f} "
     f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
 )
 
@@ -170,16 +173,19 @@ evaluation_ids = range(len(tracks))
 # evaluation_ids = ids
 
 like = 0.0
+matches = 0
 skipped = 0
 for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        like += track_likelihood_model(t, occupancy, grid_test)
+        t_like, t_matches = track_likelihood_model(t, occupancy, grid_test)
+        like += t_like
+        matches += t_matches
     else:
         skipped += 1
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-    f"{like / (len(evaluation_ids)-skipped):.3f} "
+    f"{like / matches:.3f} "
     f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
 )

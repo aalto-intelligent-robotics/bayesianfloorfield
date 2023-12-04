@@ -3,6 +3,7 @@
 # ! %autoreload 2
 # %% Imports
 
+import json
 import pickle
 import random
 import sys
@@ -15,6 +16,7 @@ from tqdm import tqdm
 from directionalflow.evaluation import (
     convert_grid,
     pixels2grid,
+    pixels2grid_complete,
     track2pixels,
     track_likelihood_model,
 )
@@ -26,19 +28,40 @@ sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
-BAYES_MAX_DATA = 3121209
+ATC_DAYS = {1: ("20121114", 3121209), 2: ("20121118", 8533469)}
+TRAIN_DAY = 1
+TEST_DAY = 2
 BAYES_INCREMENT = 100000
+USE_PRIOR = False
 
+ATC_TRAIN_DAY = ATC_DAYS[TRAIN_DAY][0]
+BAYES_MAX_DATA_TRAIN = ATC_DAYS[TRAIN_DAY][1]
+ATC_TEST_DAY = ATC_DAYS[TEST_DAY][0]
+BAYES_MAX_DATA_TEST = ATC_DAYS[TEST_DAY][1]
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
 GRID_BAYES_DATA = {
-    i: BASE_PATH / "models" / f"discrete_directional_{i:07d}.p"
-    for i in range(0, BAYES_MAX_DATA, BAYES_INCREMENT)
+    i: BASE_PATH
+    / "models"
+    / "bayes"
+    / ATC_TRAIN_DAY
+    / f"discrete_directional_{ATC_TRAIN_DAY}_{i:07d}.p"
+    for i in range(0, BAYES_MAX_DATA_TRAIN, BAYES_INCREMENT)
 }
-GRID_BAYES_DATA[BAYES_MAX_DATA] = (
-    BASE_PATH / "models" / f"discrete_directional_{BAYES_MAX_DATA:07d}.p"
+GRID_BAYES_DATA[BAYES_MAX_DATA_TRAIN] = (
+    BASE_PATH
+    / "models"
+    / "bayes"
+    / ATC_TRAIN_DAY
+    / f"discrete_directional_{ATC_TRAIN_DAY}_{BAYES_MAX_DATA_TRAIN:07d}.p"
 )
-GRID_FULL_DATA = BASE_PATH / "models" / "discrete_directional.p"
-GRID_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
+GRID_FULL_DATA = GRID_BAYES_DATA[BAYES_MAX_DATA_TRAIN]
+GRID_DATA = (
+    BASE_PATH
+    / "models"
+    / "bayes"
+    / ATC_TEST_DAY
+    / "discrete_directional_{ATC_TEST_DAY}_{BAYES_MAX_DATA_TEST:07d}.p"
+)
 
 GRID_SCALE = 20
 PLOT_DPI = 800
@@ -110,29 +133,47 @@ bayes_data = {}
 for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
     grid_bayes: grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
+    if USE_PRIOR:
+        print("Assigning prior")
+        grid.assign_prior_to_grid(
+            grid=grid_bayes, prior=np.array([1 / 8] * 8), alpha=100
+        )
     like = 0.0
+    matches = 0
     skipped = 0
     for id in tqdm(evaluation_ids):
         p = track2pixels(tracks[id], occupancy)
-        t = pixels2grid(
+        t = pixels2grid_complete(
             p, occupancy.resolution * GRID_SCALE, occupancy.resolution
         )
         if t.shape[1] > 1:
-            track_like = track_likelihood_model(t, occupancy, grid_bayes)
-            like += track_like
+            t_like, t_matches = track_likelihood_model(
+                t, occupancy, grid_bayes
+            )
+            like += t_like
+            matches += t_matches
         else:
             skipped += 1
     bayes_data[iterations] = {
         "total_like": like,
-        "avg_like": like / (len(evaluation_ids) - skipped),
+        "avg_like": like / matches,
         "num_tracks": len(evaluation_ids) - skipped,
         "skipped": skipped,
     }
     print(
         f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-        f"{like / (len(evaluation_ids)-skipped):.3f} "
+        f"{like / matches:.3f} "
         f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
     )
+
+with open(
+    (
+        f"curves/ATC_train{ATC_TRAIN_DAY}_test{ATC_TEST_DAY}"
+        f"{'_prior' if USE_PRIOR else ''}.json"
+    ),
+    "w",
+) as f:
+    json.dump(bayes_data, f)
 
 # %%
 
@@ -144,17 +185,20 @@ evaluation_ids = range(len(tracks))
 # evaluation_ids = ids
 
 like = 0.0
+matches = 0
 skipped = 0
 for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        like += track_likelihood_model(t, occupancy, grid_full)
+        t_like, t_matches = track_likelihood_model(t, occupancy, grid_full)
+        like += t_like
+        matches += t_matches
     else:
         skipped += 1
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-    f"{like / (len(evaluation_ids)-skipped):.3f} "
+    f"{like / matches:.3f} "
     f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
 )
 
@@ -168,16 +212,21 @@ evaluation_ids = range(len(tracks))
 # evaluation_ids = ids
 
 like = 0.0
+matches = 0
 skipped = 0
 for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
-    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
+    t = pixels2grid_complete(
+        p, occupancy.resolution * GRID_SCALE, occupancy.resolution
+    )
     if t.shape[1] > 1:
-        like += track_likelihood_model(t, occupancy, grid_test)
+        t_like, t_matches = track_likelihood_model(t, occupancy, grid_full)
+        like += t_like
+        matches += t_matches
     else:
         skipped += 1
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-    f"{like / (len(evaluation_ids)-skipped):.3f} "
+    f"{like / matches:.3f} "
     f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
 )

@@ -68,7 +68,7 @@ def move_grid_origin(grid: Grid, new_origin: XYCoords) -> Grid:
     return new_grid
 
 
-def assign_prior_to_grid(grid: Grid, prior: np.ndarray, alpha: float):
+def assign_prior_to_grid(grid: Grid, prior: np.ndarray, alpha: float) -> None:
     for cell in grid.cells.values():
         assert isinstance(cell, BayesianDiscreteDirectional)
         cell.update_prior(prior, alpha)
@@ -76,7 +76,7 @@ def assign_prior_to_grid(grid: Grid, prior: np.ndarray, alpha: float):
 
 def assign_cell_priors_to_grid(
     grid: Grid, priors: dict[RCCoords, np.ndarray], alpha: float
-):
+) -> None:
     for cell_id in priors:
         cell = grid.cells.get(cell_id)
         if cell:

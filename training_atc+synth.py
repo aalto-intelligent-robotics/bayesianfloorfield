@@ -33,7 +33,7 @@ from directionalflow.utils import (
 )
 from mod import grid, models
 from mod.occupancy import OccupancyMap
-from mod.visualisation import MapVisualisation
+from mod.visualisation import show_all
 
 logging.basicConfig(level=logging.INFO)
 
@@ -60,7 +60,7 @@ dyn_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 dyn_train_synth: grid.Grid = pickle.load(open(GRID_TRAIN_SYNTH_DATA, "rb"))
 dyn_test: grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 
-MapVisualisation(dyn_train, occ).show(occ_overlay=True)
+show_all(dyn_train, occ, occ_overlay=True)
 
 # %%
 window_size = 64

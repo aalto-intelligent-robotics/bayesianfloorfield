@@ -78,17 +78,17 @@ def plot_quivers(
         occ = occupancy[top:bottom, left:right]
         dyn = dynamics[top_d:bottom_d, left_d:right_d, ...]
         YX = np.mgrid[0 : window_size // scale, 0 : window_size // scale]
-        extent = [
+        extent = (
             -0.5,
             window_size // scale - 0.5,
             -0.5,
             window_size // scale - 0.5,
-        ]
+        )
     else:
         occ = occupancy
         dyn = dynamics
         YX = np.mgrid[0 : dyn.shape[0], 0 : dyn.shape[1]]
-        extent = [-0.5, dyn.shape[0] - 0.5, -0.5, dyn.shape[1] - 0.5]
+        extent = (-0.5, dyn.shape[0] - 0.5, -0.5, dyn.shape[1] - 0.5)
     dyn = dyn.reshape((-1, 8))
     if normalize:
         dyn = scale_quivers(dyn)

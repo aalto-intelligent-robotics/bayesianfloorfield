@@ -1,89 +1,92 @@
-import matplotlib.cm as cm
+from typing import Optional
+
 import numpy as np
+from matplotlib import colormaps
 from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize
 
-from . import models
+from mod.grid import Grid
+from mod.models import BayesianDiscreteDirectional, DiscreteDirectional
+from mod.occupancy import OccupancyMap
 
 # TODO add logging and manual
 # TODO fix colormap depending on the probability
 
 
-def polar2cart(theta, r):
+def polar2cart(theta: float, r: float) -> tuple[float, float]:
     z = r * np.exp(1j * theta)
     return np.real(z), np.imag(z)
 
 
-class MapVisualisation:
-    def __init__(self, mod=None, occ=None):
-        self.mod = mod
-        self.occ = occ
-        self.vis_map = []
+def show_all(
+    grid: Grid,
+    occ: Optional[OccupancyMap] = None,
+    occ_overlay: bool = False,
+    dpi: int = 100,
+) -> None:
+    show_raw(grid, dpi)
+    if (
+        grid.model == DiscreteDirectional
+        or grid.model == BayesianDiscreteDirectional
+    ):
+        show_discrete_directional(grid, occ, occ_overlay, dpi)
+    plt.show()
 
-    def show(self, occ_overlay=False, dpi=100):
-        self.__show_raw(dpi)
-        if (
-            self.mod.model == models.DiscreteDirectional
-            or self.mod.model == models.BayesianDiscreteDirectional
-        ):
-            self.__show_discrete_directional(occ_overlay, dpi)
 
-        plt.show()
+def show_raw(grid: Grid, dpi: int = 100) -> None:
+    plt.figure(dpi=dpi)
 
-    def __show_raw(self, dpi=100):
-        plt.figure(dpi=dpi)
+    for cell in grid.cells.values():
+        plt.plot(cell.data["x"], cell.data["y"], "r,")
 
-        for row_id in range(self.mod.dimensions[0]):
-            for col_id in range(self.mod.dimensions[1]):
-                key = (row_id, col_id)
-                if key in self.mod.cells:
-                    plt.plot(
-                        self.mod.cells[key].data["x"],
-                        self.mod.cells[key].data["y"],
-                        "r.",
-                    )
 
-    def __show_discrete_directional(self, occ_overlay=False, dpi=100):
-        plt.figure(dpi=dpi)
-        X = []
-        Y = []
-        U = []
-        V = []
-        C = []
-        P = []
-        for key, cell in self.mod.cells.items():
-            for b in cell.bins:
-                if cell.bins[b]["probability"] > 0:
-                    X.append(key[1])
-                    Y.append(key[0])
-                    u, v = polar2cart(b, cell.bins[b]["probability"])
-                    U.append(u)
-                    V.append(v)
-                    C.append(cell.bins[b]["probability"])
-                    P.append(cell.probability)
-        P = list(np.array(P) / max(P))
-        norm = Normalize()
-        norm.autoscale(C)
-        colormap = cm.cividis
-        if occ_overlay:
-            self.__show_occupancy()
-        plt.quiver(
-            X,
-            Y,
-            U,
-            V,
-            color=colormap(norm(C)),
-            angles="xy",
-            scale_units="xy",
-            scale=1,
-            minshaft=2,
-            # alpha=P,
-        )
+def show_discrete_directional(
+    grid: Grid,
+    occ: Optional[OccupancyMap] = None,
+    occ_overlay: bool = False,
+    dpi: int = 100,
+) -> None:
+    plt.figure(dpi=dpi)
+    X = []
+    Y = []
+    U = []
+    V = []
+    C = []
+    P = []
+    for key, cell in grid.cells.items():
+        assert isinstance(cell, DiscreteDirectional)
+        for i, bin in enumerate(cell.bins):
+            if bin.probability > 0:
+                X.append(key.column)
+                Y.append(key.row)
+                u, v = polar2cart(cell.directions[i], bin.probability)
+                U.append(u)
+                V.append(v)
+                C.append(bin.probability)
+                P.append(cell.probability)
+    P = list(np.array(P) / max(P))
+    norm = Normalize()
+    norm.autoscale(C)
+    colormap = colormaps["cividis"]
+    if occ and occ_overlay:
+        show_occupancy(occ)
+    plt.quiver(
+        X,
+        Y,
+        U,
+        V,
+        color=colormap(norm(C)),
+        angles="xy",
+        scale_units="xy",
+        scale=1,
+        minshaft=2,
+        # alpha=P,
+    )
 
-    def __show_occupancy(self):
-        if self.occ is not None:
-            r = self.occ.resolution
-            o = self.occ.origin
-            sz = self.occ.map.size
-            extent = (o[0], o[0] + sz[0] * r, o[1], o[1] + sz[1] * r)
-            plt.imshow(self.occ.map, extent=extent, cmap="gray")
+
+def show_occupancy(occ: OccupancyMap) -> None:
+    r = occ.resolution
+    o = occ.origin
+    sz = occ.map.size
+    extent = (o[0], o[0] + sz[0] * r, o[1], o[1] + sz[1] * r)
+    plt.imshow(occ.map, extent=extent, cmap="gray")
