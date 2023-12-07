@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from mod.utils import Direction, RCCoords, XYCoords
+from mod.utils import Direction, RC_from_XY, RCCoords, XY_from_RC, XYCoords
 
 
 def test_xy_coord() -> None:
@@ -14,6 +14,22 @@ def test_rc_coord() -> None:
     c = RCCoords(1, 2)
     assert c.row == 1
     assert c.column == 2
+
+
+@pytest.mark.parametrize(
+    ["xy", "rc"],
+    [(XYCoords(3, 1), RCCoords(4, 4)), (XYCoords(-2, 2), RCCoords(5, 2))],
+)
+def test_RC_from_XY(xy: XYCoords, rc: RCCoords) -> None:
+    assert RC_from_XY(xy, XYCoords(-6, -8), resolution=2) == rc
+
+
+@pytest.mark.parametrize(
+    ["xy", "rc"],
+    [(XYCoords(2, 0), RCCoords(4, 4)), (XYCoords(-2, 2), RCCoords(5, 2))],
+)
+def test_XY_from_RC(xy: XYCoords, rc: RCCoords) -> None:
+    assert XY_from_RC(rc, XYCoords(-6, -8), resolution=2) == xy
 
 
 @pytest.mark.parametrize(

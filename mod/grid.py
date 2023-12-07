@@ -5,7 +5,7 @@ import pandas as pd
 from pydantic import BaseModel, PositiveFloat
 
 from mod.models import BayesianDiscreteDirectional, Cell
-from mod.utils import RCCoords, XYCoords
+from mod.utils import RCCoords, XY_from_RC, XYCoords
 
 
 class Grid(BaseModel):
@@ -28,8 +28,8 @@ class Grid(BaseModel):
 
     def add_data(self, data: pd.DataFrame) -> None:
         data_with_row_col = data.assign(
-            row=((data["y"] - self.origin[1]) / self.resolution).astype(int),
-            col=((data["x"] - self.origin[0]) / self.resolution).astype(int),
+            row=((data.y - self.origin.y) // self.resolution).astype(int),
+            col=((data.x - self.origin.x) // self.resolution).astype(int),
         )
         row_cols = data_with_row_col[["row", "col"]].drop_duplicates()
         for _, cell_id in row_cols.iterrows():
@@ -37,10 +37,7 @@ class Grid(BaseModel):
             if key not in self.cells:
                 self.cells[key] = self.model(
                     index=key,
-                    coords=XYCoords(
-                        cell_id["col"] * self.resolution + self.origin[0],
-                        cell_id["row"] * self.resolution + self.origin[1],
-                    ),
+                    coords=XY_from_RC(key, self.origin, self.resolution),
                     resolution=self.resolution,
                 )
             cell_data = data.loc[

@@ -10,5 +10,4 @@ torch==1.9.1
 torchvision==0.10.1
 tqdm==4.62.3
 pydantic==2.5.1
-# mod
 PyYAML==5.4.1

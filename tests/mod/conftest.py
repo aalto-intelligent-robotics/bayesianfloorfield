@@ -34,7 +34,7 @@ def sample_occupancy_map_and_yaml_paths(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> OccupancyMapPaths:
     tmp_path = tmp_path_factory.mktemp("data")
-    map = Image.new("L", (2, 2))
+    map = Image.new("L", (3, 2))
     map.putpixel((1, 0), 128)
     fn = tmp_path / "map.png"
     map.save(fn)
@@ -42,8 +42,8 @@ def sample_occupancy_map_and_yaml_paths(
     fn_yaml = tmp_path / "map.yaml"
     metadata = {
         "image": "map.png",
-        "resolution": 1,
-        "origin": [7, 10, 0],
+        "resolution": 0.5,
+        "origin": [1, 2, 0],
         "negate": True,
         "occupied_thresh": 0.5,
         "free_thresh": 0.1,
