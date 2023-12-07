@@ -25,6 +25,7 @@ from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Window, estimate_dynamics, plot_quivers
 from mod import grid, models
 from mod.occupancy import OccupancyMap
+from mod.utils import XYCoords
 
 sys.modules["Grid"] = grid
 sys.modules["Models"] = models
@@ -48,7 +49,7 @@ PLOT_DPI = 800
 grid_test: grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 grid_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
-occupancy.origin = [-60.0, -40.0, 0.0]
+occupancy.origin = XYCoords(-60, -40)
 tracks = convert_grid(grid_test)
 
 id_string = f"_w{WINDOW_SIZE}_s{SCALE}_synthatc_t_{EPOCHS}"

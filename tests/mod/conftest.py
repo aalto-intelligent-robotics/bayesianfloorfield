@@ -43,7 +43,7 @@ def sample_occupancy_map_and_yaml_paths(
     metadata = {
         "image": "map.png",
         "resolution": 1,
-        "origin": [0, 0, 0],
+        "origin": [7, 10, 0],
         "negate": True,
         "occupied_thresh": 0.5,
         "free_thresh": 0.1,

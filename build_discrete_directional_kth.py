@@ -29,6 +29,6 @@ else:
     pickle.dump(g, open(pickle_path, "wb"))
 
 occupancy = OccupancyMap.from_yaml(local["dataset_folder"] + "map.yaml")
-occupancy.origin = [0, 0, 0]
+occupancy.origin = XYCoords(0, 0)
 
 show_all(grid=g, occ=occupancy, occ_overlay=True)

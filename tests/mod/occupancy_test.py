@@ -11,7 +11,8 @@ def test_occupancy_init_from_yaml(
 ) -> None:
     occ = OccupancyMap.from_yaml(sample_occupancy_map_and_yaml_paths.metadata)
     assert occ.resolution == 1
-    assert occ.origin == [0, 0, 0]
+    assert occ.origin.x == 7
+    assert occ.origin.y == 10
     assert occ.negate
     assert occ.occupied_thresh == 128
     assert occ.free_thresh == 26

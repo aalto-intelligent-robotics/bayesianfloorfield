@@ -80,10 +80,6 @@ class Direction(IntEnum):
 
 
 def wrap_to_pi(a):
-    """
-    Args:
-        a:
-    """
     if (a < -math.pi) or (a > math.pi):
         a = (a + math.pi) % (2 * math.pi) - math.pi
     else:
@@ -92,10 +88,6 @@ def wrap_to_pi(a):
 
 
 def wrap_to_pi_vec(a):
-    """
-    Args:
-        a:
-    """
     res_1 = ((a + math.pi) % (2 * math.pi) - math.pi) * (
         (a < -math.pi) | (a > math.pi)
     )
@@ -105,10 +97,6 @@ def wrap_to_pi_vec(a):
 
 
 def wrap_to_2pi(a):
-    """
-    Args:
-        a:
-    """
     if (a < 0) or (a > 2 * math.pi):
         a = abs(a % (2 * math.pi))
     else:
@@ -117,10 +105,6 @@ def wrap_to_2pi(a):
 
 
 def wrap_to_2pi_vec(a):
-    """
-    Args:
-        a:
-    """
     res_1 = (abs(a % (2 * math.pi))) * ((a < 0) | (a > 2 * math.pi))
     res_2 = a * ~((a < 0) | (a > 2 * math.pi))
     res = res_1 + res_2
@@ -128,32 +112,17 @@ def wrap_to_2pi_vec(a):
 
 
 def distance_cos_2d(p1, p2):
-    """
-    Args:
-        p1 ():
-        p2 ():
-    """
     dist = 1 - math.cos(p1.Th - p2.Th) + np.linalg.norm([p1.Rho - p2.Rho])
     return dist
 
 
 def distance_cos_2d_vec(p1, p2):
-    """
-    Args:
-        p1 ():
-        p2 ():
-    """
     sub = np.subtract(p1, p2)
     dist = 1 - np.cos(sub[:, 0]) + abs(sub[:, 1])
     return dist
 
 
 def distance_wrap_2d(p1, p2):
-    """
-    Args:
-        p1 ():
-        p2 ():
-    """
     ad = abs(wrap_to_pi(p1[0] - p2[0]))
     ld = abs(p1[1] - p2[1])
     dist = math.sqrt(ad * ad + ld * ld)
@@ -161,11 +130,6 @@ def distance_wrap_2d(p1, p2):
 
 
 def distance_wrap_2d_vec(p1, p2):
-    """
-    Args:
-        p1 ():
-        p2 ():
-    """
     diff = np.subtract(p1, p2)
     r = np.hsplit(diff, 2)
     ar = r[0].flatten()
@@ -179,11 +143,6 @@ def distance_wrap_2d_vec(p1, p2):
 
 
 def distance_wrap_2d_vec_pair(p1, p2):
-    """
-    Args:
-        p1:
-        p2:
-    """
     shape1 = np.shape(p1)[0]
     shape2 = np.shape(p2)[0]
     p2 = p2.flatten()
@@ -211,11 +170,6 @@ def distance_wrap_2d_vec_pair(p1, p2):
 
 
 def distance_disjoint_2d(p1, p2):
-    """
-    Args:
-        p1:
-        p2:
-    """
     ad = abs(wrap_to_pi(p1.Th - p2.Th))
     ld = abs(p1.Rho - p2.Rho)
     distance = collections.namedtuple("distance", ["ad", "ld"])
@@ -224,11 +178,6 @@ def distance_disjoint_2d(p1, p2):
 
 
 def weighted_mean_2d_vec(p, w):
-    """
-    Args:
-        p:
-        w:
-    """
     a = p[:, 0]
     le = p[:, 1]
 
@@ -245,10 +194,6 @@ def weighted_mean_2d_vec(p, w):
 
 
 def mean_2d_vec(p):
-    """
-    Args:
-        p:
-    """
     a = p[:, 0]
     le = p[:, 1]
 
@@ -266,17 +211,9 @@ def mean_2d_vec(p):
 
 class PointGrouper(object):
     def __init__(self, distance=distance_wrap_2d_vec):
-        """
-        Args:
-            distance:
-        """
         self.distance = distance
 
     def group_points(self, points):
-        """
-        Args:
-            points:
-        """
         group_assignment = []
         groups = []
         group_index = 0
@@ -293,11 +230,6 @@ class PointGrouper(object):
         return np.array(group_assignment)
 
     def _determine_nearest_group(self, point, groups):
-        """
-        Args:
-            point:
-            groups:
-        """
         nearest_group_index = None
         index = 0
         for group in groups:
@@ -308,11 +240,6 @@ class PointGrouper(object):
         return nearest_group_index
 
     def _distance_to_group(self, point, group):
-        """
-        Args:
-            point:
-            group:
-        """
         min_distance = sys.float_info.max
         for pt in group:
             dist = self.distance(point, pt)
@@ -323,11 +250,6 @@ class PointGrouper(object):
 
 def gaussian_kernel(distance, bandwidth):
     # euclidean_distance = np.sqrt(((distance)**2).sum(axis=1))
-    """
-    Args:
-        distance:
-        bandwidth:
-    """
     val = (1 / (bandwidth * math.sqrt(2 * math.pi))) * np.exp(
         -0.5 * (distance / bandwidth) ** 2
     )
@@ -336,11 +258,6 @@ def gaussian_kernel(distance, bandwidth):
 
 def gaussian_kernel_mv(distances, bandwidths):
     # Number of dimensions of the multivariate gaussian
-    """
-    Args:
-        distances:
-        bandwidths:
-    """
     dim = len(bandwidths)
 
     # Covariance matrix
@@ -360,11 +277,6 @@ def gaussian_kernel_mv(distances, bandwidths):
 
 
 def cutoff(distances, treshold):
-    """
-    Args:
-        distances:
-        treshold:
-    """
     closer = (distances < treshold) & (distances > 0)
     closer = closer.astype(int)
     count = np.sum(closer, axis=1)
@@ -421,23 +333,11 @@ class MeanShift(object):
         distance=distance_wrap_2d_vec,
         weight=weighted_mean_2d_vec,
     ):
-        """
-        Args:
-            kernel:
-            distance:
-            weight:
-        """
         self.kernel = kernel
         self.distance = distance
         self.weight = weight
 
     def cluster(self, points, kernel_bandwidth, iteration_callback=None):
-        """
-        Args:
-            points:
-            kernel_bandwidth:
-            iteration_callback:
-        """
         if iteration_callback:
             iteration_callback(points, 0)
         shift_points = np.array(points)
@@ -482,12 +382,6 @@ class MeanShift(object):
 
     def _shift_point(self, point, points, kernel_bandwidth):
         # from http://en.wikipedia.org/wiki/Mean-shift
-        """
-        Args:
-            point:
-            points:
-            kernel_bandwidth:
-        """
         points = np.array(points)
         point_rep = np.tile(point, [len(points), 1])
         dist = self.distance(point_rep, points)
@@ -499,13 +393,6 @@ class MeanShift(object):
 
 class MeanShiftResult:
     def __init__(self, original_points, shifted_points, cluster_ids, history):
-        """
-        Args:
-            original_points:
-            shifted_points:
-            cluster_ids:
-            history:
-        """
         self.original_points = original_points
         self.shifted_points = shifted_points
         self.cluster_ids = cluster_ids

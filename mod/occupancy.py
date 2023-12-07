@@ -5,6 +5,8 @@ from typing import Sequence, Union
 import yaml
 from PIL import Image
 
+from mod.utils import XYCoords
+
 logger = logging.getLogger(__name__)
 
 
@@ -13,13 +15,13 @@ class OccupancyMap:
         self,
         image_file: Union[str, Path],
         resolution: float,
-        origin: Sequence[float],
+        origin: Union[XYCoords, Sequence[float]],
         negate: bool,
         occupied_thresh: float,
         free_thresh: float,
     ):
         self.resolution = resolution
-        self.origin = origin
+        self.origin = XYCoords(x=origin[0], y=origin[1])
         self.negate = negate
         self.occupied_thresh = (
             round(occupied_thresh * 255)

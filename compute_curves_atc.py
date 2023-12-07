@@ -22,6 +22,7 @@ from directionalflow.evaluation import (
 )
 from mod import grid, models
 from mod.occupancy import OccupancyMap
+from mod.utils import XYCoords
 
 sys.modules["Grid"] = grid
 sys.modules["Models"] = models
@@ -69,7 +70,7 @@ PLOT_DPI = 800
 grid_test: grid.Grid = pickle.load(open(GRID_DATA, "rb"))
 grid_full: grid.Grid = pickle.load(open(GRID_FULL_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
-occupancy.origin = [-60.0, -40.0, 0.0]
+occupancy.origin = XYCoords(-60, -40)
 tracks = convert_grid(grid_test)
 
 
