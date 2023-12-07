@@ -1,7 +1,15 @@
 from io import StringIO
+from typing import NamedTuple
 
 import pandas as pd
 import pytest
+import yaml
+from PIL import Image
+
+
+class OccupancyMapPaths(NamedTuple):
+    image: str
+    metadata: str
 
 
 @pytest.fixture
@@ -19,3 +27,27 @@ def sample_data() -> pd.DataFrame:
         "0.152,3,34193,-17656,1.448267,3.025"
     )
     return pd.read_csv(StringIO(data_string), skipinitialspace=True)
+
+
+@pytest.fixture(scope="session")
+def sample_occupancy_map_and_yaml_paths(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> OccupancyMapPaths:
+    tmp_path = tmp_path_factory.mktemp("data")
+    map = Image.new("L", (2, 2))
+    map.putpixel((1, 0), 128)
+    fn = tmp_path / "map.png"
+    map.save(fn)
+
+    fn_yaml = tmp_path / "map.yaml"
+    metadata = {
+        "image": "map.png",
+        "resolution": 1,
+        "origin": [0, 0, 0],
+        "negate": True,
+        "occupied_thresh": 0.5,
+        "free_thresh": 0.1,
+    }
+    with open(fn_yaml, "w") as yaml_file:
+        yaml.dump(metadata, yaml_file)
+    return OccupancyMapPaths(fn.as_posix(), fn_yaml.as_posix())

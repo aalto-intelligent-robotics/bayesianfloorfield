@@ -1,4 +1,3 @@
-import logging
 from functools import cached_property
 from typing import NamedTuple
 
@@ -16,14 +15,6 @@ from pydantic import (
 )
 
 from mod.utils import _2PI
-
-logger = logging.getLogger(__name__)
-
-
-def cart2pol(x, y):
-    rho = np.sqrt(x**2 + y**2)
-    phi = np.arctan2(y, x) % _2PI
-    return (rho, phi)
 
 
 class XYCoords(NamedTuple):

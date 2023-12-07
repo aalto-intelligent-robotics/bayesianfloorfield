@@ -9,9 +9,6 @@ from mod.grid import Grid
 from mod.models import BayesianDiscreteDirectional, DiscreteDirectional
 from mod.occupancy import OccupancyMap
 
-# TODO add logging and manual
-# TODO fix colormap depending on the probability
-
 
 def polar2cart(theta: float, r: float) -> tuple[float, float]:
     z = r * np.exp(1j * theta)

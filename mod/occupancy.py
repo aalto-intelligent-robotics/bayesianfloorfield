@@ -1,29 +1,22 @@
 import logging
 from pathlib import Path
+from typing import Sequence, Union
 
 import yaml
 from PIL import Image
 
-logger = logging.getLogger("OccupancyMap Logger")
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+logger = logging.getLogger(__name__)
 
 
 class OccupancyMap:
     def __init__(
         self,
-        image_file,
-        resolution,
-        origin,
-        negate,
-        occupied_thresh,
-        free_thresh,
+        image_file: Union[str, Path],
+        resolution: float,
+        origin: Sequence[float],
+        negate: bool,
+        occupied_thresh: float,
+        free_thresh: float,
     ):
         self.resolution = resolution
         self.origin = origin
@@ -45,7 +38,7 @@ class OccupancyMap:
             self.map = self.map.convert("L")
 
     @property
-    def binary_map(self):
+    def binary_map(self) -> Image.Image:
         if self.negate:
             return self.map.point(lambda p: p > self.occupied_thresh and 255)
         else:
@@ -54,7 +47,7 @@ class OccupancyMap:
             )
 
     @classmethod
-    def from_metadata(cls, metadata):
+    def from_metadata(cls, metadata: dict) -> "OccupancyMap":
         return cls(
             image_file=metadata["image"],
             resolution=metadata["resolution"],
@@ -65,7 +58,7 @@ class OccupancyMap:
         )
 
     @classmethod
-    def from_yaml(cls, yaml_path):
+    def from_yaml(cls, yaml_path: Union[str, Path]) -> "OccupancyMap":
         with open(yaml_path, "r") as stream:
             meta = yaml.safe_load(stream)
         if not Path(meta["image"]).is_absolute():
