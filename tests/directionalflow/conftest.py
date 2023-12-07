@@ -11,6 +11,7 @@ from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Trainer
 from mod.grid import Grid
 from mod.occupancy import OccupancyMap
+from mod.utils import RCCoords, XYCoords
 
 
 @pytest.fixture
@@ -33,10 +34,10 @@ def occupancy() -> OccupancyMap:
 def grid() -> Grid:
     grid = mock.MagicMock(spec=Grid)
     cell1 = mod.DiscreteDirectional(
-        coords=mod.XYCoords(0, 0), index=mod.RCCoords(0, 0), resolution=1
+        coords=XYCoords(0, 0), index=RCCoords(0, 0), resolution=1
     )
     cell2 = mod.DiscreteDirectional(
-        coords=mod.XYCoords(0, 1), index=mod.RCCoords(0, 1), resolution=1
+        coords=XYCoords(0, 1), index=RCCoords(0, 1), resolution=1
     )
     p0_0 = mod.ProbabilityBin(probability=0.0)
     p0_5 = mod.ProbabilityBin(probability=0.5)

@@ -3,25 +3,8 @@ import pandas as pd
 import pytest
 from pydantic import ValidationError
 
-from mod.models import (
-    BayesianDiscreteDirectional,
-    Cell,
-    DiscreteDirectional,
-    RCCoords,
-    XYCoords,
-)
-
-
-def test_xy_coord() -> None:
-    c = XYCoords(1.23, 2.11)
-    assert c.x == 1.23
-    assert c.y == 2.11
-
-
-def test_rc_coord() -> None:
-    c = RCCoords(1, 2)
-    assert c.row == 1
-    assert c.column == 2
+from mod.models import BayesianDiscreteDirectional, Cell, DiscreteDirectional
+from mod.utils import RCCoords, XYCoords
 
 
 def test_cell_init() -> None:

@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, PositiveFloat
 
-from mod.models import BayesianDiscreteDirectional, Cell, RCCoords, XYCoords
+from mod.models import BayesianDiscreteDirectional, Cell
+from mod.utils import RCCoords, XYCoords
 
 
 class Grid(BaseModel):

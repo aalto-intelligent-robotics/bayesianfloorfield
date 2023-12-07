@@ -3,9 +3,9 @@ import pickle
 import pandas as pd
 
 from mod.grid import Grid
-from mod.models import DiscreteDirectional, XYCoords
+from mod.models import DiscreteDirectional
 from mod.occupancy import OccupancyMap
-from mod.utils import get_local_settings
+from mod.utils import XYCoords, get_local_settings
 from mod.visualisation import show_all
 
 use_pickle = False

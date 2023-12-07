@@ -11,6 +11,7 @@ import mod.models as mod
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Direction, OccupancyMap, Window
 from mod.grid import Grid
+from mod.utils import RCCoords
 
 
 def convert_matlab(track_path: Path) -> np.ndarray:
@@ -141,7 +142,7 @@ def track_likelihood_model(
         grid_row = occupancy_top - 1 - (track[3, i] + delta_origins[0])
         grid_col = track[4, i] + delta_origins[1]
         if (grid_row, grid_col) in grid.cells:
-            cell = grid.cells[mod.RCCoords(grid_row, grid_col)]
+            cell = grid.cells[RCCoords(grid_row, grid_col)]
             assert isinstance(cell, mod.DiscreteDirectional)
             pred = cell.bin_probabilities
             like += pred[dir]

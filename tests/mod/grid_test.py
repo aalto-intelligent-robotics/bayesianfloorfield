@@ -3,13 +3,8 @@ import pytest
 from pydantic import ValidationError
 
 from mod.grid import Grid
-from mod.models import (
-    BayesianDiscreteDirectional,
-    Cell,
-    DiscreteDirectional,
-    RCCoords,
-    XYCoords,
-)
+from mod.models import Cell
+from mod.utils import XYCoords
 
 
 def test_grid_init() -> None:

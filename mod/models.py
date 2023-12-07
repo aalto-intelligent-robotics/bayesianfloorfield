@@ -1,5 +1,4 @@
 from functools import cached_property
-from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -8,23 +7,12 @@ from pydantic import (
     ConfigDict,
     Field,
     NonNegativeFloat,
-    NonNegativeInt,
     PositiveFloat,
     ValidationInfo,
     field_validator,
 )
 
-from mod.utils import _2PI
-
-
-class XYCoords(NamedTuple):
-    x: float
-    y: float
-
-
-class RCCoords(NamedTuple):
-    row: NonNegativeInt
-    column: NonNegativeInt
+from mod.utils import _2PI, RCCoords, XYCoords
 
 
 class Cell(BaseModel):
@@ -163,7 +151,7 @@ class BayesianDiscreteDirectional(DiscreteDirectional):
                 ]
             )
 
-    def update_prior(self, priors: np.ndarray, alpha: float):
+    def update_prior(self, priors: np.ndarray, alpha: float) -> None:
         self.priors = priors
         self.alpha = alpha
         self.update_bin_probabilities()

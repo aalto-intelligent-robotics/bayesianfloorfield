@@ -8,8 +8,9 @@ from torch.utils.data import Dataset
 
 from directionalflow.utils import Direction, RowColumnPair, Window
 from mod.grid import Grid
-from mod.models import DiscreteDirectional, RCCoords
+from mod.models import DiscreteDirectional
 from mod.occupancy import OccupancyMap
+from mod.utils import RCCoords
 
 
 class _RandomFlipPeopleFlow(torch.nn.Module):

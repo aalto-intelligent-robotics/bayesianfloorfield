@@ -3,9 +3,11 @@ import json
 import math
 import sys
 from enum import IntEnum
+from typing import NamedTuple
 
 import numpy as np
 from jsonschema import Draft7Validator, exceptions, validators
+from pydantic import NonNegativeInt
 
 MIN_DISTANCE = 0.000001
 
@@ -13,6 +15,16 @@ GROUP_DISTANCE_TOLERANCE = 0.1
 
 
 _2PI = np.pi * 2
+
+
+class XYCoords(NamedTuple):
+    x: float
+    y: float
+
+
+class RCCoords(NamedTuple):
+    row: NonNegativeInt
+    column: NonNegativeInt
 
 
 class Direction(IntEnum):
