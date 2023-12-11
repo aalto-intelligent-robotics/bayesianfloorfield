@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from mod.occupancy import OccupancyMap
-from mod.utils import RCCoords, XYCoords
+from mod.utils import TDRCCoords, XYCoords
 
 from .conftest import OccupancyMapPaths
 
@@ -86,17 +86,17 @@ def test_occupancy_binary_map(
 @pytest.mark.parametrize(
     ["pixel", "xy"],
     [
-        (RCCoords(0, 0), XYCoords(1.25, 2.75)),
-        (RCCoords(1, 0), XYCoords(1, 2)),
-        (RCCoords(0, 1), XYCoords(1.5, 2.5)),
-        (RCCoords(1, 1), XYCoords(1.75, 2.25)),
-        (RCCoords(0, 2), XYCoords(2, 2.5)),
-        (RCCoords(1, 2), XYCoords(2.25, 2.25)),
+        (TDRCCoords(0, 0), XYCoords(1.25, 2.75)),
+        (TDRCCoords(1, 0), XYCoords(1, 2)),
+        (TDRCCoords(0, 1), XYCoords(1.5, 2.5)),
+        (TDRCCoords(1, 1), XYCoords(1.75, 2.25)),
+        (TDRCCoords(0, 2), XYCoords(2, 2.5)),
+        (TDRCCoords(1, 2), XYCoords(2.25, 2.25)),
     ],
 )
 def test_pixel_from_XY(
     sample_occupancy_map_and_yaml_paths: OccupancyMapPaths,
-    pixel: RCCoords,
+    pixel: TDRCCoords,
     xy: XYCoords,
 ) -> None:
     occ = OccupancyMap.from_yaml(sample_occupancy_map_and_yaml_paths.metadata)
@@ -125,17 +125,17 @@ def test_pixel_from_XY_out_of_bound(
 @pytest.mark.parametrize(
     ["pixel", "xy"],
     [
-        (RCCoords(0, 0), XYCoords(1, 2.5)),
-        (RCCoords(1, 0), XYCoords(1, 2)),
-        (RCCoords(0, 1), XYCoords(1.5, 2.5)),
-        (RCCoords(1, 1), XYCoords(1.5, 2)),
-        (RCCoords(0, 2), XYCoords(2, 2.5)),
-        (RCCoords(1, 2), XYCoords(2, 2)),
+        (TDRCCoords(0, 0), XYCoords(1, 2.5)),
+        (TDRCCoords(1, 0), XYCoords(1, 2)),
+        (TDRCCoords(0, 1), XYCoords(1.5, 2.5)),
+        (TDRCCoords(1, 1), XYCoords(1.5, 2)),
+        (TDRCCoords(0, 2), XYCoords(2, 2.5)),
+        (TDRCCoords(1, 2), XYCoords(2, 2)),
     ],
 )
 def test_XY_from_pixel(
     sample_occupancy_map_and_yaml_paths: OccupancyMapPaths,
-    pixel: RCCoords,
+    pixel: TDRCCoords,
     xy: XYCoords,
 ) -> None:
     occ = OccupancyMap.from_yaml(sample_occupancy_map_and_yaml_paths.metadata)
@@ -145,14 +145,14 @@ def test_XY_from_pixel(
 @pytest.mark.parametrize(
     "pixel",
     [
-        RCCoords(-1, 0),
-        RCCoords(0, -1),
-        RCCoords(2, 2),
-        RCCoords(1, 3),
+        TDRCCoords(-1, 0),
+        TDRCCoords(0, -1),
+        TDRCCoords(2, 2),
+        TDRCCoords(1, 3),
     ],
 )
 def test_XY_from_pixel_out_of_bound(
-    sample_occupancy_map_and_yaml_paths: OccupancyMapPaths, pixel: RCCoords
+    sample_occupancy_map_and_yaml_paths: OccupancyMapPaths, pixel: TDRCCoords
 ) -> None:
     occ = OccupancyMap.from_yaml(sample_occupancy_map_and_yaml_paths.metadata)
     with pytest.raises(ValueError):

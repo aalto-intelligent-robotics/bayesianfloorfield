@@ -1,7 +1,18 @@
 import numpy as np
 import pytest
 
-from mod.utils import Direction, RC_from_XY, RCCoords, XY_from_RC, XYCoords
+from mod.utils import (
+    Direction,
+    RC_from_TDRC,
+    RC_from_XY,
+    RCCoords,
+    TDRC_from_RC,
+    TDRC_from_XY,
+    TDRCCoords,
+    XY_from_RC,
+    XY_from_TDRC,
+    XYCoords,
+)
 
 
 def test_xy_coord() -> None:
@@ -16,6 +27,12 @@ def test_rc_coord() -> None:
     assert c.column == 2
 
 
+def test_tdrc_coord() -> None:
+    c = TDRCCoords(1, 2)
+    assert c.row == 1
+    assert c.column == 2
+
+
 @pytest.mark.parametrize(
     ["xy", "rc"],
     [(XYCoords(3, 1), RCCoords(4, 4)), (XYCoords(-2, 2), RCCoords(5, 2))],
@@ -24,12 +41,70 @@ def test_RC_from_XY(xy: XYCoords, rc: RCCoords) -> None:
     assert RC_from_XY(xy, XYCoords(-6, -8), resolution=2) == rc
 
 
+def test_RC_from_XY_raises() -> None:
+    origin = XYCoords(-6, -8)
+
+    with pytest.raises(ValueError):
+        RC_from_XY(XYCoords(-7, 0), origin, resolution=2)
+    with pytest.raises(ValueError):
+        RC_from_XY(XYCoords(0, -10), origin, resolution=2)
+
+    assert RC_from_XY(origin, origin, resolution=2) == RCCoords(0, 0)
+
+
 @pytest.mark.parametrize(
     ["xy", "rc"],
     [(XYCoords(2, 0), RCCoords(4, 4)), (XYCoords(-2, 2), RCCoords(5, 2))],
 )
 def test_XY_from_RC(xy: XYCoords, rc: RCCoords) -> None:
     assert XY_from_RC(rc, XYCoords(-6, -8), resolution=2) == xy
+
+
+@pytest.mark.parametrize(
+    ["xy", "rc"],
+    [(XYCoords(3, 1), TDRCCoords(1, 4)), (XYCoords(-2, 2), TDRCCoords(0, 2))],
+)
+def test_TDRC_from_XY(xy: XYCoords, rc: TDRCCoords) -> None:
+    assert TDRC_from_XY(xy, XYCoords(-6, -8), resolution=2, num_rows=6) == rc
+
+
+def test_TDRC_from_XY_raises() -> None:
+    origin = XYCoords(-6, -8)
+
+    with pytest.raises(ValueError):
+        TDRC_from_XY(XYCoords(-7, 0), origin, resolution=2, num_rows=3)
+    with pytest.raises(ValueError):
+        TDRC_from_XY(XYCoords(0, -10), origin, resolution=2, num_rows=3)
+
+    assert TDRC_from_XY(origin, origin, 2, num_rows=3) == TDRCCoords(2, 0)
+
+
+@pytest.mark.parametrize(
+    ["rc", "n", "tdrc"],
+    [
+        (RCCoords(0, 1), 1, TDRCCoords(0, 1)),
+        (RCCoords(1, 0), 4, TDRCCoords(2, 0)),
+        (RCCoords(32, 122), 100, TDRCCoords(67, 122)),
+    ],
+)
+def test_TDRC_RC_conversion(rc: RCCoords, n: int, tdrc: TDRCCoords) -> None:
+    assert TDRC_from_RC(rc, num_rows=n) == tdrc
+    assert RC_from_TDRC(tdrc, num_rows=n) == rc
+
+
+def test_TDRC_RC_conversion_raises() -> None:
+    with pytest.raises(ValueError):
+        TDRC_from_RC(RCCoords(6, 40), num_rows=6)
+    with pytest.raises(ValueError):
+        RC_from_TDRC(TDRCCoords(1, 2), num_rows=1)
+
+
+@pytest.mark.parametrize(
+    ["xy", "rc"],
+    [(XYCoords(2, 0), TDRCCoords(1, 4)), (XYCoords(-2, 2), TDRCCoords(0, 2))],
+)
+def test_XY_from_TDRC(xy: XYCoords, rc: TDRCCoords) -> None:
+    assert XY_from_TDRC(rc, XYCoords(-6, -8), resolution=2, num_rows=6) == xy
 
 
 @pytest.mark.parametrize(

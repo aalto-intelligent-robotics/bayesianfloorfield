@@ -5,7 +5,7 @@ from typing import Sequence, Union
 import yaml
 from PIL import Image
 
-from mod.utils import RC_from_XY, RCCoords, XY_from_RC, XYCoords
+from mod.utils import TDRC_from_XY, TDRCCoords, XY_from_TDRC, XYCoords
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +48,14 @@ class OccupancyMap:
                 lambda p: 255 - p > self.occupied_thresh and 255
             )
 
-    def pixel_from_XY(self, coords: XYCoords) -> RCCoords:
+    def pixel_from_XY(self, coords: XYCoords) -> TDRCCoords:
         w, h = self.map.size
-        row, column = RC_from_XY(coords, self.origin, self.resolution)
+        row, column = TDRC_from_XY(coords, self.origin, self.resolution, h)
         if row < 0 or row >= h or column < 0 or column >= w:
             raise ValueError(f"The point {coords} is outside the map.")
-        return RCCoords(h - row - 1, column)
+        return TDRCCoords(row, column)
 
-    def XY_from_pixel(self, pixel: RCCoords) -> XYCoords:
+    def XY_from_pixel(self, pixel: TDRCCoords) -> XYCoords:
         w, h = self.map.size
         if (
             pixel.row < 0
@@ -64,11 +64,7 @@ class OccupancyMap:
             or pixel.column >= w
         ):
             raise ValueError(f"The pixel {pixel} is outside the map.")
-        return XY_from_RC(
-            RCCoords(h - pixel.row - 1, pixel.column),
-            self.origin,
-            self.resolution,
-        )
+        return XY_from_TDRC(pixel, self.origin, self.resolution, h)
 
     @classmethod
     def from_metadata(cls, metadata: dict) -> "OccupancyMap":

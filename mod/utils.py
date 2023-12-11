@@ -6,20 +6,33 @@ import numpy as np
 from jsonschema import Draft7Validator, exceptions, validators
 from pydantic import NonNegativeInt
 
-MIN_DISTANCE = 0.000001
-
-GROUP_DISTANCE_TOLERANCE = 0.1
-
-
 _2PI = np.pi * 2
 
 
 class XYCoords(NamedTuple):
+    """A x-y tuple for point in a 2D coordinate system."""
+
     x: float
     y: float
 
 
 class RCCoords(NamedTuple):
+    """
+    A row-column tuple to be used in a grid with origin in the bottom-left
+    corner and row indeces ascending bottom-up from the origin.
+    """
+
+    row: NonNegativeInt
+    column: NonNegativeInt
+
+
+class TDRCCoords(NamedTuple):
+    """
+    A row-column tuple to be used in a grid with origin in the bottom-left
+    corner and row indeces descending top-down from the top-left corner (as is
+    common for example in images).
+    """
+
     row: NonNegativeInt
     column: NonNegativeInt
 
@@ -27,6 +40,8 @@ class RCCoords(NamedTuple):
 def RC_from_XY(xy: XYCoords, origin: XYCoords, resolution: float) -> RCCoords:
     row = int((xy.y - origin.y) // resolution)
     col = int((xy.x - origin.x) // resolution)
+    if row < 0 or col < 0:
+        raise ValueError(f"Negative row or column ({row=}, {col=})")
     return RCCoords(row, col)
 
 
@@ -34,6 +49,34 @@ def XY_from_RC(rc: RCCoords, origin: XYCoords, resolution: float) -> XYCoords:
     x = rc.column * resolution + origin.x
     y = rc.row * resolution + origin.y
     return XYCoords(x, y)
+
+
+def TDRC_from_XY(
+    xy: XYCoords, origin: XYCoords, resolution: float, num_rows: int
+) -> TDRCCoords:
+    return TDRC_from_RC(RC_from_XY(xy, origin, resolution), num_rows)
+
+
+def XY_from_TDRC(
+    rc: TDRCCoords, origin: XYCoords, resolution: float, num_rows: int
+) -> XYCoords:
+    return XY_from_RC(RC_from_TDRC(rc, num_rows), origin, resolution)
+
+
+def RC_from_TDRC(rc: TDRCCoords, num_rows: int) -> RCCoords:
+    if num_rows <= rc.row:
+        raise ValueError(
+            f"Row index greater than available rows ({rc.row=}, {num_rows=})"
+        )
+    return RCCoords(num_rows - rc.row - 1, rc.column)
+
+
+def TDRC_from_RC(rc: RCCoords, num_rows: int) -> TDRCCoords:
+    if num_rows <= rc.row:
+        raise ValueError(
+            f"Row index greater than available rows ({rc.row=}, {num_rows=})"
+        )
+    return TDRCCoords(num_rows - rc.row - 1, rc.column)
 
 
 class Direction(IntEnum):
