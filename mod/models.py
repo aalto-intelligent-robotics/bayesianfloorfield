@@ -55,7 +55,6 @@ class Cell(BaseModel):
 
 class ProbabilityBin(BaseModel):
     probability: float = Field(default=0, ge=0, le=1)
-    data: pd.DataFrame = Field(default=pd.DataFrame())
     model_config = ConfigDict(
         arbitrary_types_allowed=True, validate_assignment=True
     )
@@ -95,6 +94,16 @@ class DiscreteDirectional(Cell):
     def bin_probabilities(self) -> list[float]:
         return [bin.probability for bin in self.bins]
 
+    def add_data(self, data: pd.DataFrame) -> None:
+        self.data = pd.concat(
+            [
+                self.data,
+                data.assign(
+                    bin=data["motion_angle"].apply(self.bin_from_angle)
+                ),
+            ]
+        )
+
     def bin_from_angle(self, rad: float) -> int:
         for i, d in enumerate(self.directions):
             diff = np.abs(d - (rad % _2PI)) - self.half_split
@@ -102,23 +111,18 @@ class DiscreteDirectional(Cell):
                 return i
         return 0
 
-    def update_bin_data(self) -> None:
-        if not self.data.empty:
-            data_bins = self.data["motion_angle"].apply(self.bin_from_angle)
-            for i in data_bins.drop_duplicates():
-                self.bins[i].data = self.data.loc[data_bins == i]
-
     def update_bin_probabilities(self) -> None:
         if not self.data.empty:
-            for bin in self.bins:
-                bin.probability = len(bin.data.index) / self.observation_count
+            for i, bin in enumerate(self.bins):
+                bin.probability = (
+                    len(self.data[self.data.bin == i]) / self.observation_count
+                )
             assert np.isclose(
                 sum(self.bin_probabilities), 1
             ), f"Bin probability sum equal to {sum(self.bin_probabilities)}."
 
     def update_model(self, total_observations: int) -> None:
         self.compute_cell_probability(total_observations)
-        self.update_bin_data()
         self.update_bin_probabilities()
 
 
@@ -159,7 +163,9 @@ class BayesianDiscreteDirectional(DiscreteDirectional):
     def update_bin_probabilities(self) -> None:
         if not self.data.empty:
             for i, bin in enumerate(self.bins):
-                posterior = self.priors[i] * self.alpha + len(bin.data.index)
+                posterior = self.priors[i] * self.alpha + len(
+                    self.data.loc[self.data.bin == i]
+                )
                 bin.probability = posterior / (
                     np.sum(self.priors) * self.alpha + len(self.data.index)
                 )

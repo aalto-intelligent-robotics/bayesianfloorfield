@@ -8,8 +8,8 @@ from mod.occupancy import OccupancyMap
 from mod.utils import XYCoords, get_local_settings
 from mod.visualisation import show_all
 
-# ATC_DAY = "20121114"
-ATC_DAY = "20121118"
+ATC_DAY = "20121114"
+# ATC_DAY = "20121118"
 
 USE_PICKLE = False
 
@@ -22,9 +22,9 @@ pickle_path = (
 if USE_PICKLE:
     g = pickle.load(open(pickle_path, "rb"))
 else:
-    input_file = pd.read_csv(csv_path, chunksize=100000)
+    input_file = pd.read_csv(csv_path, chunksize=50000)
     g = Grid(
-        origin=XYCoords(-41000, -40000),
+        origin=XYCoords(-42000, -40000),
         resolution=1000,
         model=BayesianDiscreteDirectional,
     )

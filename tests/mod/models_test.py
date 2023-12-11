@@ -216,3 +216,42 @@ def test_bayes_discr_dir_update_model(sample_data: pd.DataFrame) -> None:
 
     with pytest.raises(ValidationError):
         cell.update_model(total_observations=len(sample_data.index) - 1)
+
+
+def test_bayes_discr_dir_update_prior(sample_data: pd.DataFrame) -> None:
+    cell = BayesianDiscreteDirectional(
+        coords=XYCoords(-1, 1), index=RCCoords(10, 20), resolution=2
+    )
+    cell.add_data(sample_data)
+    cell.update_model(total_observations=9)
+    assert cell.probability == 1
+    assert cell.bin_probabilities == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
+
+    cell.update_prior(np.array([1 / 8] * 8), 1)
+    assert cell.bin_probabilities == [
+        1 / 80,
+        1 / 80,
+        1 / 80,
+        3.125 / 10,
+        4.125 / 10,
+        1 / 80,
+        1 / 80,
+        2.125 / 10,
+    ]
+
+    cell.update_prior(
+        np.array([1 / 8, 1 / 4, 1 / 4, 1 / 4, 1 / 16, 1 / 16, 0, 0]), 8
+    )
+    assert cell.bin_probabilities == [
+        1 / 17,
+        2 / 17,
+        2 / 17,
+        5 / 17,
+        9 / 34,
+        1 / 34,
+        0,
+        2 / 17,
+    ]
+
+    cell.update_prior(np.array([1 / 8] * 8), 0)
+    assert cell.bin_probabilities == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]

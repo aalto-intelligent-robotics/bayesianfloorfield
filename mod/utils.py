@@ -37,6 +37,22 @@ class TDRCCoords(NamedTuple):
     column: NonNegativeInt
 
 
+def RC_from_TDRC(rc: TDRCCoords, num_rows: int) -> RCCoords:
+    if num_rows <= rc.row:
+        raise ValueError(
+            f"Row index greater than available rows ({rc.row=}, {num_rows=})"
+        )
+    return RCCoords(num_rows - rc.row - 1, rc.column)
+
+
+def TDRC_from_RC(rc: RCCoords, num_rows: int) -> TDRCCoords:
+    if num_rows <= rc.row:
+        raise ValueError(
+            f"Row index greater than available rows ({rc.row=}, {num_rows=})"
+        )
+    return TDRCCoords(num_rows - rc.row - 1, rc.column)
+
+
 def RC_from_XY(xy: XYCoords, origin: XYCoords, resolution: float) -> RCCoords:
     row = int((xy.y - origin.y) // resolution)
     col = int((xy.x - origin.x) // resolution)
@@ -61,22 +77,6 @@ def XY_from_TDRC(
     rc: TDRCCoords, origin: XYCoords, resolution: float, num_rows: int
 ) -> XYCoords:
     return XY_from_RC(RC_from_TDRC(rc, num_rows), origin, resolution)
-
-
-def RC_from_TDRC(rc: TDRCCoords, num_rows: int) -> RCCoords:
-    if num_rows <= rc.row:
-        raise ValueError(
-            f"Row index greater than available rows ({rc.row=}, {num_rows=})"
-        )
-    return RCCoords(num_rows - rc.row - 1, rc.column)
-
-
-def TDRC_from_RC(rc: RCCoords, num_rows: int) -> TDRCCoords:
-    if num_rows <= rc.row:
-        raise ValueError(
-            f"Row index greater than available rows ({rc.row=}, {num_rows=})"
-        )
-    return TDRCCoords(num_rows - rc.row - 1, rc.column)
 
 
 class Direction(IntEnum):
