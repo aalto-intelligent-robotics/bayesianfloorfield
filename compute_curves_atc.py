@@ -32,8 +32,9 @@ BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
 ATC_DAYS = {1: ("20121114", 3121209), 2: ("20121118", 8533469)}
 TRAIN_DAY = 1
 TEST_DAY = 2
-BAYES_INCREMENT = 100000
+BAYES_INCREMENT = 50000
 USE_PRIOR = False
+RUN_SUFFIX = ""
 
 ATC_TRAIN_DAY = ATC_DAYS[TRAIN_DAY][0]
 BAYES_MAX_DATA_TRAIN = ATC_DAYS[TRAIN_DAY][1]
@@ -61,7 +62,7 @@ GRID_DATA = (
     / "models"
     / "bayes"
     / ATC_TEST_DAY
-    / "discrete_directional_{ATC_TEST_DAY}_{BAYES_MAX_DATA_TEST:07d}.p"
+    / f"discrete_directional_{ATC_TEST_DAY}_{BAYES_MAX_DATA_TEST:07d}.p"
 )
 
 GRID_SCALE = 20
@@ -141,36 +142,38 @@ for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
         )
     like = 0.0
     matches = 0
-    skipped = 0
+    missing = 0
     for id in tqdm(evaluation_ids):
         p = track2pixels(tracks[id], occupancy)
         t = pixels2grid_complete(
             p, occupancy.resolution * GRID_SCALE, occupancy.resolution
         )
-        if t.shape[1] > 1:
-            t_like, t_matches = track_likelihood_model(
-                t, occupancy, grid_bayes
-            )
-            like += t_like
-            matches += t_matches
-        else:
-            skipped += 1
+        t_like, t_matches, t_missing = track_likelihood_model(
+            t, occupancy, grid_bayes
+        )
+        like += t_like
+        matches += t_matches
+        missing += t_missing
+
     bayes_data[iterations] = {
         "total_like": like,
-        "avg_like": like / matches,
-        "num_tracks": len(evaluation_ids) - skipped,
-        "skipped": skipped,
+        "matches": matches,
+        "avg_like": like / matches if matches else 0.0,
+        "num_tracks": len(evaluation_ids),
+        "missing": missing,
     }
     print(
         f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-        f"{like / matches:.3f} "
-        f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
+        f"{like / matches if matches else 0.0:.3f} "
+        f"(on {len(evaluation_ids)} tracks, {missing}/{matches} cell missed)"
     )
 
 with open(
     (
         f"curves/ATC_train{ATC_TRAIN_DAY}_test{ATC_TEST_DAY}"
-        f"{'_prior' if USE_PRIOR else ''}.json"
+        + ("_prior" if USE_PRIOR else "")
+        + ("_" + RUN_SUFFIX if RUN_SUFFIX else "")
+        + ".json"
     ),
     "w",
 ) as f:
@@ -187,20 +190,23 @@ evaluation_ids = range(len(tracks))
 
 like = 0.0
 matches = 0
-skipped = 0
+missing = 0
 for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
-    t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
-    if t.shape[1] > 1:
-        t_like, t_matches = track_likelihood_model(t, occupancy, grid_full)
-        like += t_like
-        matches += t_matches
-    else:
-        skipped += 1
+    t = pixels2grid_complete(
+        p, occupancy.resolution * GRID_SCALE, occupancy.resolution
+    )
+
+    t_like, t_matches, t_missing = track_likelihood_model(
+        t, occupancy, grid_full
+    )
+    like += t_like
+    matches += t_matches
+    missing += t_missing
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-    f"{like / matches:.3f} "
-    f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
+    f"{like / matches if matches else 0.0:.3f} "
+    f"(on {len(evaluation_ids)} tracks, {missing}/{matches} cell missed)"
 )
 
 # %%
@@ -214,20 +220,20 @@ evaluation_ids = range(len(tracks))
 
 like = 0.0
 matches = 0
-skipped = 0
+missing = 0
 for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid_complete(
         p, occupancy.resolution * GRID_SCALE, occupancy.resolution
     )
-    if t.shape[1] > 1:
-        t_like, t_matches = track_likelihood_model(t, occupancy, grid_full)
-        like += t_like
-        matches += t_matches
-    else:
-        skipped += 1
+    t_like, t_matches, t_missing = track_likelihood_model(
+        t, occupancy, grid_test
+    )
+    like += t_like
+    matches += t_matches
+    missing += t_missing
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-    f"{like / matches:.3f} "
-    f"(on {(len(evaluation_ids)-skipped)} tracks, {skipped} skipped)"
+    f"{like / matches if matches else 0.0:.3f} "
+    f"(on {len(evaluation_ids)} tracks, {missing}/{matches} cell missed)"
 )

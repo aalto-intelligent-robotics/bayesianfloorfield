@@ -179,7 +179,7 @@ for id in tqdm(evaluation_ids):
     p = track2pixels(tracks[id], occupancy)
     t = pixels2grid(p, occupancy.resolution * GRID_SCALE, occupancy.resolution)
     if t.shape[1] > 1:
-        t_like, t_matches = track_likelihood_model(t, occupancy, grid_test)
+        t_like, t_matches, _ = track_likelihood_model(t, occupancy, grid_test)
         like += t_like
         matches += t_matches
     else:

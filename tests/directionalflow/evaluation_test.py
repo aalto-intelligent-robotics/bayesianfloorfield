@@ -1,3 +1,5 @@
+from typing import Literal
+
 import numpy as np
 import pytest
 
@@ -83,14 +85,27 @@ def test_track_likelihood_net(occupancy: OccupancyMap) -> None:
     assert 0 <= like / matches <= 1
 
 
-def test_track_likelihood_model(occupancy: OccupancyMap, grid: Grid) -> None:
+@pytest.mark.parametrize(
+    ["missing_strategy", "expected_like", "expected_matches"],
+    [("skip", 1.5, 2), ("uniform", 1.625, 3), ("zero", 1.5, 3)],
+)
+def test_track_likelihood_model(
+    occupancy: OccupancyMap,
+    grid: Grid,
+    missing_strategy: Literal["skip", "uniform", "zero"],
+    expected_like: float,
+    expected_matches: int,
+) -> None:
     track = np.array(
         [
             [0.4, 0.5, np.pi, 0, 0],
-            [0.8, 1.5, np.pi / 2, 0, 1],
-            [1.7, 1.3, np.pi * 2, 1, 1],
+            [1.5, 0.8, 0, 1, 0],
+            [1.7, 1.3, np.pi / 4, 1, 1],
         ]
     ).T
-    like, matches = track_likelihood_model(track, occupancy, grid)
-    assert matches == 3
-    assert 0 <= like / matches <= 1
+    like, matches, missing = track_likelihood_model(
+        track, occupancy, grid, missing_cells=missing_strategy
+    )
+    assert like == pytest.approx(expected_like)
+    assert matches == expected_matches
+    assert missing == 1

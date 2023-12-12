@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -127,8 +128,9 @@ def track_likelihood_model(
     track: np.ndarray,
     occupancy: OccupancyMap,
     grid: Grid,
-    ignore_missing: bool = False,
-) -> tuple[float, int]:
+    missing_cells: Literal["skip", "uniform", "zero"] = "uniform",
+) -> tuple[float, int, int]:
+    assert missing_cells in ["skip", "uniform", "zero"]
     occupancy_top = int(occupancy.map.size[1] * occupancy.resolution)
     delta_origins = [
         occupancy.origin[1] - grid.origin[1] / grid.resolution,
@@ -147,10 +149,11 @@ def track_likelihood_model(
             pred = cell.bin_probabilities
             like += pred[dir]
             matches += 1
-        elif not ignore_missing:
-            like += 1 / 8
+        else:
             missing += 1
-            matches += 1
-    # if missing:
-    #    print(f"missing: {missing}")
-    return (like, matches)
+            if missing_cells != "skip":
+                matches += 1
+                if missing_cells == "uniform":
+                    like += 1 / 8
+
+    return (like, matches, missing)

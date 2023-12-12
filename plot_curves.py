@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 
 ATC_DAYS = {1: ("20121114", 3121209), 2: ("20121118", 8533469)}
 
-files_day1 = Path("curves").glob(f"ATC_trainday{ATC_DAYS[1][0]}*.json")
-files_day2 = Path("curves").glob(f"ATC_trainday{ATC_DAYS[2][0]}.json")
+files_day1 = Path("curves").glob(f"ATC_train{ATC_DAYS[1][0]}*.json")
+files_day2 = Path("curves").glob(f"ATC_train{ATC_DAYS[2][0]}*.json")
 
 SOURCES_DAY1 = {file.stem: file for file in files_day1}
 SOURCES_DAY2 = {file.stem: file for file in files_day2}

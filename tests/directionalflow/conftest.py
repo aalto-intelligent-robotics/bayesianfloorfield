@@ -37,7 +37,7 @@ def grid() -> Grid:
         coords=XYCoords(0, 0), index=RCCoords(0, 0), resolution=1
     )
     cell2 = mod.DiscreteDirectional(
-        coords=XYCoords(0, 1), index=RCCoords(0, 1), resolution=1
+        coords=XYCoords(0, 1000), index=RCCoords(0, 1), resolution=1
     )
     p0_0 = mod.ProbabilityBin(probability=0.0)
     p0_5 = mod.ProbabilityBin(probability=0.5)
@@ -47,8 +47,8 @@ def grid() -> Grid:
     grid.configure_mock(
         **{
             "resolution": 1000,
-            "cells": {(0, 0): cell1, (0, 1): cell2},
-            "origin": [0, 2, 0],
+            "cells": {RCCoords(0, 0): cell1, RCCoords(0, 1): cell2},
+            "origin": [0, 2000, 0],
         }
     )
     return grid
