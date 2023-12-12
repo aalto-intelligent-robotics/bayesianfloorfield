@@ -4,6 +4,12 @@ line-length = 79
 exclude = "octopytorch"
 
 
+#### Flake8 ####
+[tool.flake8]
+exclude = "octopytorch"
+extend-ignore = ["E203", "W503"]
+
+
 #### Mypy ####
 # Global options
 [tool.mypy]
