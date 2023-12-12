@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Annotated
 
 import numpy as np
 import pandas as pd
@@ -14,13 +15,15 @@ from pydantic import (
 
 from mod.utils import _2PI, RCCoords, XYCoords
 
+Probability = Annotated[float, Field(ge=0, le=1)]
+
 
 class Cell(BaseModel):
     # TODO previously flipped (x = coords[1], y = coords[0])
     coords: XYCoords = Field(frozen=True)
     index: RCCoords = Field(frozen=True)
     resolution: PositiveFloat = Field(frozen=True)
-    probability: float = Field(default=0, ge=0, le=1)
+    probability: Probability = 0
     data: pd.DataFrame = Field(default=pd.DataFrame())
     model_config = ConfigDict(
         arbitrary_types_allowed=True, validate_assignment=True
@@ -53,34 +56,30 @@ class Cell(BaseModel):
         self.compute_cell_probability(total_observations)
 
 
-class ProbabilityBin(BaseModel):
-    probability: float = Field(default=0, ge=0, le=1)
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True, validate_assignment=True
-    )
-
-
 class DiscreteDirectional(Cell):
     """
     Floor Field
     """
 
     bin_count: int = Field(frozen=True, default=8)
-    bins: list[ProbabilityBin] = Field(default=[], validate_default=True)
+    bins: list[Probability] = Field(default=[], validate_default=True)
 
     @field_validator("bins")
     @classmethod
     def default_bins(
-        cls, v: list[ProbabilityBin], values: ValidationInfo
-    ) -> list[ProbabilityBin]:
-        return (
-            v
-            if v
-            else [
-                ProbabilityBin(probability=1 / values.data["bin_count"])
+        cls, v: list[Probability], values: ValidationInfo
+    ) -> list[Probability]:
+        if v is not None and len(v) != 0:
+            if len(v) != values.data["bin_count"] or not np.isclose(
+                np.sum(v), 1
+            ):
+                raise ValueError(f"Malformed prior = {v}")
+            return v
+        else:
+            return [
+                1 / values.data["bin_count"]
                 for _ in range(values.data["bin_count"])
             ]
-        )
 
     @cached_property
     def half_split(self) -> float:
@@ -89,10 +88,6 @@ class DiscreteDirectional(Cell):
     @cached_property
     def directions(self) -> np.ndarray:
         return np.arange(0, _2PI, _2PI / self.bin_count)
-
-    @property
-    def bin_probabilities(self) -> list[float]:
-        return [bin.probability for bin in self.bins]
 
     def add_data(self, data: pd.DataFrame) -> None:
         self.data = pd.concat(
@@ -113,13 +108,13 @@ class DiscreteDirectional(Cell):
 
     def update_bin_probabilities(self) -> None:
         if not self.data.empty:
-            for i, bin in enumerate(self.bins):
-                bin.probability = (
+            for i in range(self.bin_count):
+                self.bins[i] = (
                     len(self.data[self.data.bin == i]) / self.observation_count
                 )
             assert np.isclose(
-                sum(self.bin_probabilities), 1
-            ), f"Bin probability sum equal to {sum(self.bin_probabilities)}."
+                sum(self.bins), 1
+            ), f"Bin probability sum equal to {sum(self.bins)}."
 
     def update_model(self, total_observations: int) -> None:
         self.compute_cell_probability(total_observations)
@@ -131,44 +126,40 @@ class BayesianDiscreteDirectional(DiscreteDirectional):
     Bayesian Floor Field
     """
 
-    priors: np.ndarray = Field(default=np.array([]), validate_default=True)
+    priors: list[Probability] = Field(default=[], validate_default=True)
     alpha: NonNegativeFloat = 0.0
 
     @field_validator("priors")
     @classmethod
     def default_priors(
-        cls, v: np.ndarray, values: ValidationInfo
-    ) -> np.ndarray:
-        if v is not None and v.size != 0:
-            if (
-                v.size != values.data["bin_count"]
-                or not (v >= 0).all()
-                or not np.isclose(np.sum(v), 1)
+        cls, v: list[Probability], values: ValidationInfo
+    ) -> list[Probability]:
+        if v is not None and len(v) != 0:
+            if len(v) != values.data["bin_count"] or not np.isclose(
+                np.sum(v), 1
             ):
                 raise ValueError(f"Malformed prior = {v}")
             return v
         else:
-            return np.array(
-                [
-                    1 / values.data["bin_count"]
-                    for _ in range(values.data["bin_count"])
-                ]
-            )
+            return [
+                1 / values.data["bin_count"]
+                for _ in range(values.data["bin_count"])
+            ]
 
-    def update_prior(self, priors: np.ndarray, alpha: float) -> None:
+    def update_prior(self, priors: list[Probability], alpha: float) -> None:
         self.priors = priors
         self.alpha = alpha
         self.update_bin_probabilities()
 
     def update_bin_probabilities(self) -> None:
         if not self.data.empty:
-            for i, bin in enumerate(self.bins):
+            for i in range(self.bin_count):
                 posterior = self.priors[i] * self.alpha + len(
                     self.data.loc[self.data.bin == i]
                 )
-                bin.probability = posterior / (
+                self.bins[i] = posterior / (
                     np.sum(self.priors) * self.alpha + len(self.data.index)
                 )
             assert np.isclose(
-                sum(self.bin_probabilities), 1
-            ), f"Bin probability sum equal to {sum(self.bin_probabilities)}."
+                sum(self.bins), 1
+            ), f"Bin probability sum equal to {sum(self.bins)}."

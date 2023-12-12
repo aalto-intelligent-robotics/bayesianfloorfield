@@ -138,7 +138,7 @@ for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     if USE_PRIOR:
         print("Assigning prior")
         grid.assign_prior_to_grid(
-            grid=grid_bayes, prior=np.array([1 / 8] * 8), alpha=100
+            grid=grid_bayes, prior=[1 / 8] * 8, alpha=100
         )
     like = 0.0
     matches = 0

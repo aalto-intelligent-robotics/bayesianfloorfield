@@ -52,14 +52,14 @@ def show_discrete_directional(
     P = []
     for key, cell in grid.cells.items():
         assert isinstance(cell, DiscreteDirectional)
-        for i, bin in enumerate(cell.bins):
-            if bin.probability > 0:
+        for i, p in enumerate(cell.bins):
+            if p > 0:
                 X.append(key.column)
                 Y.append(key.row)
-                u, v = polar2cart(cell.directions[i], bin.probability)
+                u, v = polar2cart(cell.directions[i], p)
                 U.append(u)
                 V.append(v)
-                C.append(bin.probability)
+                C.append(p)
                 P.append(cell.probability)
     P = list(np.array(P) / max(P))
     norm = Normalize()

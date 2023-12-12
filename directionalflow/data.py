@@ -225,4 +225,4 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
         cell = self.dynamics.cells[RCCoords(center[0], center[1])]
         assert isinstance(cell, DiscreteDirectional)
-        return np.array(cell.bin_probabilities, dtype=np.float32)
+        return np.array(cell.bins, dtype=np.float32)

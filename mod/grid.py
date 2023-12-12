@@ -1,11 +1,13 @@
+import logging
 from copy import deepcopy
 
-import numpy as np
 import pandas as pd
 from pydantic import BaseModel, PositiveFloat
 
-from mod.models import BayesianDiscreteDirectional, Cell
+from mod.models import BayesianDiscreteDirectional, Cell, Probability
 from mod.utils import RCCoords, XY_from_RC, XYCoords
+
+logger = logging.getLogger(__name__)
 
 
 class Grid(BaseModel):
@@ -66,17 +68,23 @@ def move_grid_origin(grid: Grid, new_origin: XYCoords) -> Grid:
     return new_grid
 
 
-def assign_prior_to_grid(grid: Grid, prior: np.ndarray, alpha: float) -> None:
+def assign_prior_to_grid(
+    grid: Grid, prior: list[Probability], alpha: float
+) -> None:
     for cell in grid.cells.values():
         assert isinstance(cell, BayesianDiscreteDirectional)
         cell.update_prior(prior, alpha)
 
 
 def assign_cell_priors_to_grid(
-    grid: Grid, priors: dict[RCCoords, np.ndarray], alpha: float
+    grid: Grid, priors: dict[RCCoords, list[Probability]], alpha: float
 ) -> None:
     for cell_id in priors:
         cell = grid.cells.get(cell_id)
         if cell:
             assert isinstance(cell, BayesianDiscreteDirectional)
             cell.update_prior(priors[cell_id], alpha)
+        else:
+            logger.warning(
+                f"Unable to assign prior to non-existing cell {cell_id}"
+            )

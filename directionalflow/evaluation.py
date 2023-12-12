@@ -146,8 +146,7 @@ def track_likelihood_model(
         if (grid_row, grid_col) in grid.cells:
             cell = grid.cells[RCCoords(grid_row, grid_col)]
             assert isinstance(cell, mod.DiscreteDirectional)
-            pred = cell.bin_probabilities
-            like += pred[dir]
+            like += cell.bins[dir]
             matches += 1
         else:
             missing += 1

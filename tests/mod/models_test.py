@@ -93,7 +93,7 @@ def test_discr_dir_init() -> None:
     assert cell.half_split == pytest.approx(0.39269908)
     assert len(cell.directions) == 8
     assert len(cell.bins) == 8
-    assert sum(cell.bin_probabilities) == pytest.approx(1)
+    assert sum(cell.bins) == pytest.approx(1)
 
     cell = DiscreteDirectional(
         coords=XYCoords(-1, 1),
@@ -105,7 +105,7 @@ def test_discr_dir_init() -> None:
     assert cell.half_split == pytest.approx(0.39269908 * 2)
     assert len(cell.directions) == 4
     assert len(cell.bins) == 4
-    assert sum(cell.bin_probabilities) == pytest.approx(1)
+    assert sum(cell.bins) == pytest.approx(1)
 
 
 def test_discr_dir_bin_from_angle() -> None:
@@ -149,11 +149,11 @@ def test_discr_dir_update_model(sample_data: pd.DataFrame) -> None:
     )
     cell.update_model(total_observations=0)
     assert cell.probability == 0
-    assert all([bin.probability == 1 / 8 for bin in cell.bins])
+    assert all([p == 1 / 8 for p in cell.bins])
 
     cell.update_model(total_observations=10)
     assert cell.probability == 0
-    assert all([bin.probability == 1 / 8 for bin in cell.bins])
+    assert all([p == 1 / 8 for p in cell.bins])
 
     cell.add_data(sample_data)
     with pytest.raises(ValueError):
@@ -161,7 +161,7 @@ def test_discr_dir_update_model(sample_data: pd.DataFrame) -> None:
 
     cell.update_model(total_observations=9)
     assert cell.probability == 1
-    assert cell.bin_probabilities == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
+    assert cell.bins == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
 
     with pytest.raises(ValidationError):
         cell.update_model(total_observations=len(sample_data.index) - 1)
@@ -175,7 +175,7 @@ def test_bayes_discr_dir_init() -> None:
     assert cell.half_split == pytest.approx(0.39269908)
     assert len(cell.directions) == 8
     assert len(cell.bins) == 8
-    assert sum(cell.bin_probabilities) == pytest.approx(1)
+    assert sum(cell.bins) == pytest.approx(1)
     assert cell.alpha == 0
     assert all([prior == 1 / 8 for prior in cell.priors])
 
@@ -189,7 +189,7 @@ def test_bayes_discr_dir_init() -> None:
     assert cell.half_split == pytest.approx(0.39269908 * 2)
     assert len(cell.directions) == 4
     assert len(cell.bins) == 4
-    assert sum(cell.bin_probabilities) == pytest.approx(1)
+    assert sum(cell.bins) == pytest.approx(1)
     assert cell.alpha == 0
     assert all([prior == 1 / 4 for prior in cell.priors])
 
@@ -200,11 +200,11 @@ def test_bayes_discr_dir_update_model(sample_data: pd.DataFrame) -> None:
     )
     cell.update_model(total_observations=0)
     assert cell.probability == 0
-    assert all([bin.probability == 1 / 8 for bin in cell.bins])
+    assert all([p == 1 / 8 for p in cell.bins])
 
     cell.update_model(total_observations=10)
     assert cell.probability == 0
-    assert all([bin.probability == 1 / 8 for bin in cell.bins])
+    assert all([p == 1 / 8 for p in cell.bins])
 
     cell.add_data(sample_data)
     with pytest.raises(ValueError):
@@ -212,7 +212,7 @@ def test_bayes_discr_dir_update_model(sample_data: pd.DataFrame) -> None:
 
     cell.update_model(total_observations=9)
     assert cell.probability == 1
-    assert cell.bin_probabilities == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
+    assert cell.bins == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
 
     with pytest.raises(ValidationError):
         cell.update_model(total_observations=len(sample_data.index) - 1)
@@ -225,10 +225,10 @@ def test_bayes_discr_dir_update_prior(sample_data: pd.DataFrame) -> None:
     cell.add_data(sample_data)
     cell.update_model(total_observations=9)
     assert cell.probability == 1
-    assert cell.bin_probabilities == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
+    assert cell.bins == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
 
-    cell.update_prior(np.array([1 / 8] * 8), 1)
-    assert cell.bin_probabilities == [
+    cell.update_prior([1 / 8] * 8, 1)
+    assert cell.bins == [
         1 / 80,
         1 / 80,
         1 / 80,
@@ -239,10 +239,8 @@ def test_bayes_discr_dir_update_prior(sample_data: pd.DataFrame) -> None:
         2.125 / 10,
     ]
 
-    cell.update_prior(
-        np.array([1 / 8, 1 / 4, 1 / 4, 1 / 4, 1 / 16, 1 / 16, 0, 0]), 8
-    )
-    assert cell.bin_probabilities == [
+    cell.update_prior([1 / 8, 1 / 4, 1 / 4, 1 / 4, 1 / 16, 1 / 16, 0, 0], 8)
+    assert cell.bins == [
         1 / 17,
         2 / 17,
         2 / 17,
@@ -253,5 +251,5 @@ def test_bayes_discr_dir_update_prior(sample_data: pd.DataFrame) -> None:
         2 / 17,
     ]
 
-    cell.update_prior(np.array([1 / 8] * 8), 0)
-    assert cell.bin_probabilities == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
+    cell.update_prior([1 / 8] * 8, 0)
+    assert cell.bins == [0, 0, 0, 3 / 9, 4 / 9, 0, 0, 2 / 9]
