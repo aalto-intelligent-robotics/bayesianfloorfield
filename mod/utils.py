@@ -1,6 +1,6 @@
 import json
 from enum import IntEnum
-from typing import NamedTuple
+from typing import Literal, NamedTuple, Union
 
 import numpy as np
 from jsonschema import Draft7Validator, exceptions, validators
@@ -131,7 +131,13 @@ class Direction(IntEnum):
         return cls.from_rad(rad)
 
 
-def extended_validator(json_path, schema_path):
+def extended_validator(
+    json_path: str, schema_path: str
+) -> Union[
+    tuple[Literal[True], dict],
+    tuple[Literal[False], exceptions.ValidationError],
+    tuple[Literal[False], exceptions.SchemaError],
+]:
     schema_file = open(schema_path, "r")
     my_schema = json.load(schema_file)
 
@@ -140,7 +146,7 @@ def extended_validator(json_path, schema_path):
 
     validate_properties = Draft7Validator.VALIDATORS["properties"]
 
-    def set_defaults(validator, properties, instance, schema):
+    def set_defaults(validator, properties, instance, schema):  # type: ignore
         for prop, sub_schema in properties.items():
             if "default" in sub_schema:
                 instance.setdefault(prop, sub_schema["default"])
@@ -168,7 +174,11 @@ def extended_validator(json_path, schema_path):
 
 
 def get_local_settings(
-    json_path="config/local_settings.json",
-    schema_path="config/local_settings_schema.json",
-):
+    json_path: str = "config/local_settings.json",
+    schema_path: str = "config/local_settings_schema.json",
+) -> Union[
+    tuple[Literal[True], dict],
+    tuple[Literal[False], exceptions.ValidationError],
+    tuple[Literal[False], exceptions.SchemaError],
+]:
     return extended_validator(json_path, schema_path)

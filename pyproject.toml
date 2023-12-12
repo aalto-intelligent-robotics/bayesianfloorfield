@@ -15,7 +15,7 @@ show_error_codes = true
 
 # Per-module overrides
 [[tool.mypy.overrides]]
-module = "mod.*"
+module = "mod.curation"
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
