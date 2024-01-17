@@ -1,10 +1,15 @@
 from io import StringIO
 from typing import NamedTuple
+from unittest import mock
 
 import pandas as pd
 import pytest
 import yaml
 from PIL import Image
+
+import mod.models as mod
+from mod.grid import Grid
+from mod.utils import RCCoords, XYCoords
 
 
 class OccupancyMapPaths(NamedTuple):
@@ -27,6 +32,27 @@ def sample_data() -> pd.DataFrame:
         "0.152,3,34193,-17656,1.448267,3.025"
     )
     return pd.read_csv(StringIO(data_string), skipinitialspace=True)
+
+
+@pytest.fixture
+def grid() -> Grid:
+    grid = mock.MagicMock(spec=Grid)
+    cell1 = mod.BayesianDiscreteDirectional(
+        coords=XYCoords(0, 0), index=RCCoords(0, 0), resolution=1
+    )
+    cell2 = mod.BayesianDiscreteDirectional(
+        coords=XYCoords(0, 1000), index=RCCoords(0, 1), resolution=1
+    )
+    cell1.bins = [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0]
+    cell2.bins = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    grid.configure_mock(
+        **{
+            "resolution": 1000,
+            "cells": {RCCoords(0, 0): cell1, RCCoords(0, 1): cell2},
+            "origin": [0, 2000, 0],
+        }
+    )
+    return grid
 
 
 @pytest.fixture(scope="session")
