@@ -1,5 +1,4 @@
 import logging
-from copy import deepcopy
 
 import pandas as pd
 from pydantic import BaseModel, PositiveFloat
@@ -51,21 +50,6 @@ class Grid(BaseModel):
     def update_model(self) -> None:
         for cell in self.cells.values():
             cell.update_model(self.total_count)
-
-
-def move_grid_origin(grid: Grid, new_origin: XYCoords) -> Grid:
-    new_grid = deepcopy(grid)
-    old_origin = new_grid.origin
-    delta_origin = XYCoords(
-        old_origin.x - new_origin.x,
-        old_origin.y - new_origin.y,
-    )
-    for cell in new_grid.cells.values():
-        cell.coords = XYCoords(
-            cell.coords.x - delta_origin.x, cell.coords.y - delta_origin.y
-        )
-    new_grid.origin = new_origin
-    return new_grid
 
 
 def assign_prior_to_grid(
