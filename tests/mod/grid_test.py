@@ -3,7 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from mod.grid import Grid, assign_prior_to_grid
-from mod.models import Cell
+from mod.models import BayesianDiscreteDirectional, Cell
 from mod.utils import XYCoords
 
 
@@ -27,13 +27,15 @@ def test_grid_add_data(sample_data: pd.DataFrame) -> None:
     assert grid.dimensions != (0, 0)
 
 
-def test_grid_assign_prior(grid: Grid) -> None:
+def test_grid_assign_prior(bayesian_grid: Grid) -> None:
     alpha = 2
     priors = [1 / 4] * 2 + [1 / 12] * 6
-    assign_prior_to_grid(grid, prior=priors, alpha=alpha)
+    assign_prior_to_grid(bayesian_grid, prior=priors, alpha=alpha)
     assert all(
         [
-            cell.alpha == alpha and cell.priors == priors
-            for cell in grid.cells.values()
+            isinstance(cell, BayesianDiscreteDirectional)
+            and cell.alpha == alpha
+            and cell.priors == priors
+            for cell in bayesian_grid.cells.values()
         ]
     )

@@ -32,7 +32,6 @@ def occupancy() -> OccupancyMap:
 
 @pytest.fixture
 def grid() -> Grid:
-    grid = mock.MagicMock(spec=Grid)
     cell1 = mod.DiscreteDirectional(
         coords=XYCoords(0, 0), index=RCCoords(0, 0), resolution=1
     )
@@ -41,14 +40,12 @@ def grid() -> Grid:
     )
     cell1.bins = [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0]
     cell2.bins = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    grid.configure_mock(
-        **{
-            "resolution": 1000,
-            "cells": {RCCoords(0, 0): cell1, RCCoords(0, 1): cell2},
-            "origin": [0, 2000, 0],
-        }
+    return Grid(
+        resolution=1000,
+        origin=XYCoords(0, 2000),
+        model=mod.DiscreteDirectional,
+        cells={RCCoords(0, 0): cell1, RCCoords(0, 1): cell2},
     )
-    return grid
 
 
 @pytest.fixture
