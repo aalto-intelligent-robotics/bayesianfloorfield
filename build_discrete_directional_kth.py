@@ -8,13 +8,13 @@ from mod.occupancy import OccupancyMap
 from mod.utils import XYCoords, get_local_settings
 from mod.visualisation import show_all
 
-use_pickle = False
+USE_PICKLE = False
 
 _, local = get_local_settings("config/local_settings_kth.json")
 csv_path = local["dataset_folder"] + "kth_trajectory_data.csv"
 pickle_path = local["pickle_folder"] + "discrete_directional_kth.p"
 
-if use_pickle:
+if USE_PICKLE:
     g = pickle.load(open(pickle_path, "rb"))
 else:
     input_file = pd.read_csv(csv_path, chunksize=100000)
