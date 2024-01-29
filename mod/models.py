@@ -100,11 +100,16 @@ class DiscreteDirectional(Cell):
         )
 
     def bin_from_angle(self, rad: float) -> int:
+        a = rad % _2PI
         for i, d in enumerate(self.directions):
-            diff = np.abs(d - (rad % _2PI)) - self.half_split
-            if diff < 0 or np.isclose(diff, 0):
+            s = (d - self.half_split) % _2PI
+            e = d + self.half_split
+            if (
+                np.float64(a - s).round(8) % _2PI
+                < np.float64(e - s).round(8) % _2PI
+            ):
                 return i
-        return 0
+        raise ValueError(f"{rad} does not represent an angle")
 
     def update_bin_probabilities(self) -> None:
         if not self.data.empty:

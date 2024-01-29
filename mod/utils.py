@@ -113,7 +113,10 @@ class Direction(IntEnum):
     def contains(self, rad: float) -> bool:
         a = rad % _2PI
         s, e = self.range
-        return (a - s) % _2PI < (e - s) % _2PI
+        return bool(
+            np.float64(a - s).round(8) % _2PI
+            < np.float64(e - s).round(8) % _2PI
+        )
 
     @classmethod
     def from_rad(cls, rad: float) -> "Direction":

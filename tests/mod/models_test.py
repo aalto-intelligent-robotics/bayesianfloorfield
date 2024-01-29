@@ -119,11 +119,12 @@ def test_discr_dir_bin_from_angle() -> None:
         bin_count=3,
     )
 
-    rads = np.arange(0, 2 * np.pi, np.pi / 24)
-    negative_rads = np.arange(-2 * np.pi, 0, np.pi / 24)
-    double_rads = np.arange(2 * np.pi, 4 * np.pi, np.pi / 24)
+    rads = np.arange(0, 2, 1 / 24) * np.pi
+    negative_rads = np.arange(-2, 0, 1 / 24) * np.pi
+    double_rads = np.arange(2, 4, 1 / 24) * np.pi
+
     expected_8 = (
-        [0] * 4
+        [0] * 3
         + [1] * 6
         + [2] * 6
         + [3] * 6
@@ -131,9 +132,9 @@ def test_discr_dir_bin_from_angle() -> None:
         + [5] * 6
         + [6] * 6
         + [7] * 6
-        + [0] * 2
+        + [0] * 3
     )
-    expected_3 = [0] * 9 + [1] * 16 + [2] * 16 + [0] * 7
+    expected_3 = [0] * 8 + [1] * 16 + [2] * 16 + [0] * 8
 
     assert [cell_8.bin_from_angle(rad) for rad in rads] == expected_8
     assert [cell_3.bin_from_angle(rad) for rad in rads] == expected_3
