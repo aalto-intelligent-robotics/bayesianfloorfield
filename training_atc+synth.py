@@ -93,7 +93,6 @@ trainset_synth = DiscreteDirectionalDataset(
     window_size=window_size,
     scale=scale_synth,
     transform=transform,
-    dynamics_in_mm=False,
 )
 valset = DiscreteDirectionalDataset(
     occupancy=occ, dynamics=dyn_test, window_size=window_size, scale=scale
