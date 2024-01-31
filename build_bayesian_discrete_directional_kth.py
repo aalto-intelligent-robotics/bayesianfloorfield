@@ -17,7 +17,7 @@ pickle_path = local["pickle_folder"] + "bayes/discrete_directional_kth"
 if USE_PICKLE:
     g = pickle.load(open(pickle_path, "rb"))
 else:
-    input_file = pd.read_csv(csv_path, chunksize=50000)
+    input_file = pd.read_csv(csv_path, chunksize=10000)
     g = Grid(
         origin=XYCoords(-58.9, -30.75),
         resolution=1,

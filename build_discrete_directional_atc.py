@@ -22,12 +22,13 @@ if USE_PICKLE:
 else:
     input_file = pd.read_csv(csv_path, chunksize=100000)
     g = Grid(
-        origin=XYCoords(-42000, -40000),
-        resolution=1000,
+        origin=XYCoords(-42, -40),
+        resolution=1,
         model=DiscreteDirectional,
     )
     total_observations = 0
     for chunk in input_file:
+        chunk[["x", "y"]] /= 1000  # convert from mm to m
         g.add_data(chunk)
         total_observations = total_observations + len(chunk.index)
     g.update_model()

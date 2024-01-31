@@ -1,7 +1,7 @@
 import logging
 
 import pandas as pd
-from pydantic import BaseModel, PositiveFloat
+from pydantic import BaseModel, Field, PositiveFloat
 
 from mod.models import BayesianDiscreteDirectional, Cell, Probability
 from mod.utils import RCCoords, XY_from_RC, XYCoords
@@ -13,7 +13,7 @@ class Grid(BaseModel):
     resolution: PositiveFloat
     origin: XYCoords
     model: type[Cell] = Cell
-    cells: dict[RCCoords, Cell] = {}
+    cells: dict[RCCoords, Cell] = Field(default={}, repr=False)
     total_count: int = 0
 
     @property

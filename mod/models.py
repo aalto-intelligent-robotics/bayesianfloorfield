@@ -24,7 +24,7 @@ class Cell(BaseModel):
     index: RCCoords = Field(frozen=True)
     resolution: PositiveFloat = Field(frozen=True)
     probability: Probability = 0
-    data: pd.DataFrame = Field(default=pd.DataFrame())
+    data: pd.DataFrame = Field(default=pd.DataFrame(), repr=False)
     model_config = ConfigDict(
         arbitrary_types_allowed=True, validate_assignment=True
     )

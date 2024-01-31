@@ -22,7 +22,7 @@ def test_grid_init() -> None:
 
 
 def test_grid_add_data(sample_data: pd.DataFrame) -> None:
-    grid = Grid(resolution=1000, origin=XYCoords(-40000, -40000), model=Cell)
+    grid = Grid(resolution=1, origin=XYCoords(-40, -40), model=Cell)
     grid.add_data(sample_data)
     assert sum([len(cell.data.index) for cell in grid.cells.values()]) == 9
     assert grid.total_count == 9
@@ -30,7 +30,7 @@ def test_grid_add_data(sample_data: pd.DataFrame) -> None:
 
 
 def test_grid_update_model(sample_data: pd.DataFrame) -> None:
-    grid = Grid(resolution=1000, origin=XYCoords(-40000, -40000), model=Cell)
+    grid = Grid(resolution=1, origin=XYCoords(-40, -40), model=Cell)
     grid.add_data(sample_data)
     grid.update_model()
     assert grid.cells[(RCCoords(17, 79))].probability == 3 / 9
