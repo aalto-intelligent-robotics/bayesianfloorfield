@@ -104,10 +104,7 @@ class DiscreteDirectional(Cell):
         for i, d in enumerate(self.directions):
             s = (d - self.half_split) % _2PI
             e = d + self.half_split
-            if (
-                np.float64(a - s).round(8) % _2PI
-                < np.float64(e - s).round(8) % _2PI
-            ):
+            if round(a - s, ndigits=8) % _2PI < round(e - s, ndigits=8) % _2PI:
                 return i
         raise ValueError(f"{rad} does not represent an angle")
 
