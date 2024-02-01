@@ -114,11 +114,7 @@ def track_likelihood_net(
             device, dtype=torch.float
         )
         with torch.no_grad():
-            pred = (
-                net(inputs)[0, :, window_size // 2, window_size // 2]
-                .cpu()
-                .numpy()
-            )
+            pred = net(inputs)[0, :].cpu().numpy()
         like += pred[dir]
         matches += 1
     return (like, matches)
