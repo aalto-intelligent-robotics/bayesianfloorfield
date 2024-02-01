@@ -190,16 +190,11 @@ def estimate_dynamics(
         nonempty_centers = torch.empty(
             (nonempty_patches.shape[0], net.out_channels)
         )
-        empty_center = net(empty_patch.to(device, dtype=torch.float))[
-            :, :, window.center[0], window.center[1]
-        ]
+        empty_center = net(empty_patch.to(device, dtype=torch.float))
         for i in trange(0, nonempty_patches.shape[0], batch_size):
             end = min(i + batch_size, nonempty_patches.shape[0])
             batch = nonempty_patches[i:end, ...].to(device, dtype=torch.float)
-            output = net(batch)
-            nonempty_centers[i:end] = output[
-                :, :, window.center[0], window.center[1]
-            ]
+            nonempty_centers[i:end] = net(batch)
         del nonempty_patches, empty_patch
 
         centers = torch.empty((num_pixels, net.out_channels))
@@ -232,7 +227,6 @@ class Trainer:
         self.valloader = valloader
         self.writer = writer
         self.train_epochs = 0
-        self.cr, self.cc = Window(net.window_size).center
 
     def _step(
         self,
@@ -249,7 +243,7 @@ class Trainer:
             self.optimizer.zero_grad()
 
         # forward
-        outputs = self.net(inputs)[..., self.cr, self.cc]
+        outputs = self.net(inputs)
         if isinstance(self.criterion, torch.nn.KLDivLoss):
             outputs = F.log_softmax(outputs, dim=1)
         loss = self.criterion(outputs, groundtruth)

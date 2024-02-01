@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Type
 
-from torch import nn
+from torch import Tensor, nn
 
 import mod.models as mod
 import octopytorch as octo
@@ -15,6 +15,7 @@ class PeopleFlow(octo.models.Tiramisu):
     ) -> None:
         self.model = model
         self.window_size = window_size
+        self.window_center = window_size // 2
 
         module_bank = octo.DEFAULT_MODULE_BANK.copy()
 
@@ -48,6 +49,10 @@ class PeopleFlow(octo.models.Tiramisu):
 
         # Initializes all the convolutional kernel weights.
         self.initialize_kernels(nn.init.kaiming_uniform_, conv=True)
+
+    def forward(self, inp: Tensor) -> Tensor:
+        y_pred = super().forward(inp)
+        return y_pred[..., self.window_center, self.window_center]
 
 
 class DiscreteDirectional(PeopleFlow):

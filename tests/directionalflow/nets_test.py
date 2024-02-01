@@ -16,5 +16,6 @@ def test_network_ouput() -> None:
     net = DiscreteDirectional(window_size=32)
     with torch.no_grad():
         output = net(input)
-    assert output.shape == (2, 8, 32, 32)
-    assert torch.sum(output[0, :, 16, 16]) == pytest.approx(1)
+    assert output.shape == (2, 8)
+    assert torch.sum(output[0, :]) == pytest.approx(1)
+    assert torch.sum(output[1, :]) == pytest.approx(1)
