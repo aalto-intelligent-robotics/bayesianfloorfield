@@ -45,8 +45,20 @@ sys.modules["Models"] = models
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
 
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
-GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional.p"
-GRID_TEST_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
+GRID_TRAIN_DATA = (
+    BASE_PATH
+    / "models"
+    / "bayes"
+    / "20121114"
+    / "discrete_directional_20121114_3121209.p"
+)
+GRID_TEST_DATA = (
+    BASE_PATH
+    / "models"
+    / "bayes"
+    / "20121118"
+    / "discrete_directional_20121118_8533469.p"
+)
 
 occ = OccupancyMap.from_yaml(MAP_METADATA)
 dyn_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
@@ -56,7 +68,7 @@ show_all(dyn_train, occ, occ_overlay=True, dpi=1000)
 
 # %%
 window_size = 64
-scale = 16
+scale = 8
 
 # transform = None
 transform = transforms.Compose(
@@ -116,7 +128,8 @@ trainer = Trainer(
 
 # %% Train
 
-trainer.train(epochs=100)
+epochs = 120
+trainer.train(epochs=epochs)
 
 # %% Save network weights
 
@@ -124,9 +137,8 @@ path = f"models/people_net{id_string}_{trainer.train_epochs}.pth"
 trainer.save(path)
 
 # %% Load network weights
-# epochs = trainer.train_epochs
-epochs = 100
 
+# epochs = trainer.train_epochs
 path = f"models/people_net{id_string}_{epochs}.pth"
 trainer.load(path)
 
