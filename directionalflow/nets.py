@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Type
 
-from torch import Tensor, nn
+from torch import Tensor, load, nn
 
 import mod.models as mod
 import octopytorch as octo
@@ -53,6 +53,10 @@ class PeopleFlow(octo.models.Tiramisu):
     def forward(self, inp: Tensor) -> Tensor:
         y_pred = super().forward(inp)
         return y_pred[..., self.window_center, self.window_center]
+
+    def load_weights(self, checkpoint_path: str) -> None:
+        checkpoint = load(checkpoint_path)["model_state_dict"]
+        self.load_state_dict(checkpoint)
 
 
 class DiscreteDirectional(PeopleFlow):

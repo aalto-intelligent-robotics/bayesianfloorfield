@@ -24,7 +24,7 @@ def occupancy() -> OccupancyMap:
             "resolution": 1,
             "map": map,
             "binary_map": map,
-            "origin": [0, 2, 0],
+            "origin": XYCoords(0, 2),
         }
     )
     return occupancy
@@ -33,10 +33,10 @@ def occupancy() -> OccupancyMap:
 @pytest.fixture
 def grid() -> Grid:
     cell1 = mod.DiscreteDirectional(
-        coords=XYCoords(0, 0), index=RCCoords(0, 0), resolution=1
+        coords=XYCoords(0, 2), index=RCCoords(0, 0), resolution=1
     )
     cell2 = mod.DiscreteDirectional(
-        coords=XYCoords(0, 1), index=RCCoords(0, 1), resolution=1
+        coords=XYCoords(1, 2), index=RCCoords(0, 1), resolution=1
     )
     cell1.bins = [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0]
     cell2.bins = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

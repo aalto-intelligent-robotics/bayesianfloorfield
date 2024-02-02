@@ -12,33 +12,47 @@ import mod.models as mod
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Direction, OccupancyMap, Window
 from mod.grid import Grid
-from mod.utils import RCCoords
+from mod.utils import RC_from_XY, RCCoords, XYCoords
 
 
-def convert_matlab(track_path: Path) -> np.ndarray:
+def extract_tracks_from_matlab(track_path: Path) -> np.ndarray:
+    """returns [tracks[x, y]]"""
     return sio.loadmat(track_path, squeeze_me=True)["dataTrajectoryNoIDCell"]
 
 
-def convert_grid(grid: Grid) -> np.ndarray:
-    columns = ["time", "person_id", "x", "y", "motion_angle"]
+def extract_tracks_from_grid(
+    grid: Grid, with_grountruth: bool = False
+) -> np.ndarray:
+    """
+    returns [tracks[x, y, motion_angle]] if with_groundtruth = False (default),
+    otherwise [tracks[x, y, motion_angle, bin, cell_row, cell_col]]
+    """
+    columns = ["time", "person_id", "x", "y", "motion_angle", "bin"]
     data = pd.DataFrame()
     for cell in tqdm(grid.cells.values()):
-        data = pd.concat([data, cell.data[columns]])
+        cell_data = cell.data[columns].assign(
+            cell_row=cell.index.row, cell_col=cell.index.column
+        )
+        data = pd.concat([data, cell_data])
 
     data_grouped = data.groupby("person_id")
-    usable_tracks = data_grouped.size().where(data_grouped.size() > 1).dropna()
-    data_list = np.empty(len(usable_tracks), dtype=object)
+    data_list = np.empty(len(data_grouped), dtype=object)
+
+    columns_to_export = ["x", "y", "motion_angle"]
+    if with_grountruth:
+        columns_to_export += ["bin", "cell_row", "cell_col"]
+
     i = 0
     for _, person_data in tqdm(data_grouped):
-        if len(person_data) > 1:
-            person_data.sort_values("time", inplace=True)
-            person_data[["x", "y"]] /= 1000
-            data_list[i] = person_data[["x", "y", "motion_angle"]].to_numpy().T
-            i += 1
+        person_data.sort_values("time", inplace=True)
+        data_list[i] = person_data[columns_to_export].to_numpy().T
+        i += 1
     return data_list
 
 
-def track2pixels(track: np.ndarray, occupancy: OccupancyMap) -> np.ndarray:
+def pixels_from_track(
+    track: np.ndarray, occupancy: OccupancyMap
+) -> np.ndarray:
     r = occupancy.resolution
     o = occupancy.origin
     s = occupancy.map.size
@@ -49,43 +63,19 @@ def track2pixels(track: np.ndarray, occupancy: OccupancyMap) -> np.ndarray:
     return pixels
 
 
-def pixels2grid(
-    pixels: np.ndarray, grid_resolution: float, occupancy_resolution: float
-) -> np.ndarray:
-    ratio = occupancy_resolution / grid_resolution
-    cell_indeces = (pixels[0:2, :] * ratio).astype(int)
-    grid = []
-    last_cell = np.array([np.nan, np.nan])
-    pixels_in_cell = []
-    for i, cell in enumerate(cell_indeces.T):
-        if all(cell == last_cell):
-            pixels_in_cell.append((pixels[0:2, :].T)[i])
-        else:
-            if len(pixels_in_cell):
-                grid.append(
-                    np.concatenate(
-                        (np.mean(pixels_in_cell, axis=0), last_cell)
-                    )
-                )
-            pixels_in_cell = [(pixels[0:2, :].T)[i]]
-            last_cell = cell
-    if len(pixels_in_cell):
-        grid.append(
-            np.concatenate((np.mean(pixels_in_cell, axis=0), last_cell))
+def append_cell_indeces_to_track(track: np.ndarray, grid: Grid) -> np.ndarray:
+    cell_indeces = np.empty((2, track.shape[1]))
+    for i, point in enumerate(track.T):
+        cell = RC_from_XY(
+            XYCoords(point[0], point[1]), grid.origin, grid.resolution
         )
-    return np.array(grid).T
-
-
-def pixels2grid_complete(
-    pixels: np.ndarray, grid_resolution: float, occupancy_resolution: float
-) -> np.ndarray:
-    ratio = occupancy_resolution / grid_resolution
-    cell_indeces = (pixels[0:2, :] * ratio).astype(int)
-    return np.concatenate([pixels, cell_indeces])
+        cell_indeces[0, i] = cell.row
+        cell_indeces[1, i] = cell.column
+    return np.concatenate([track, cell_indeces])
 
 
 def track_likelihood_net(
-    track: np.ndarray,
+    pixels: np.ndarray,
     occupancy: OccupancyMap,
     window_size: int,
     scale: int,
@@ -97,10 +87,10 @@ def track_likelihood_net(
     net.eval()
     like = 0
     matches = 0
-    for i in range(track.shape[1]):
-        row, col = track[0:2, i]
+    for i in range(pixels.shape[1]):
+        row, col = pixels[0:2, i]
         center = (int(row), int(col))
-        dir = Direction.from_rad(track[2, i])
+        dir = Direction.from_rad(pixels[2, i])
         crop = (
             np.asarray(
                 occupancy.binary_map.crop(window.corners(center)).resize(
@@ -122,26 +112,22 @@ def track_likelihood_net(
 
 def track_likelihood_model(
     track: np.ndarray,
-    occupancy: OccupancyMap,
     grid: Grid,
     missing_cells: Literal["skip", "uniform", "zero"] = "uniform",
 ) -> tuple[float, int, int]:
     assert missing_cells in ["skip", "uniform", "zero"]
-    occupancy_top = int(occupancy.map.size[1] * occupancy.resolution)
-    delta_origins = [
-        occupancy.origin[1] - grid.origin[1] / grid.resolution,
-        occupancy.origin[0] - grid.origin[0] / grid.resolution,
-    ]
     like = 0.0
     missing = 0
     matches = 0
     for i in range(track.shape[1]):
         dir = Direction.from_rad(track[2, i])
-        grid_row = occupancy_top - 1 - (track[3, i] + delta_origins[0])
-        grid_col = track[4, i] + delta_origins[1]
+        grid_row = track[3, i]
+        grid_col = track[4, i]
         if (grid_row, grid_col) in grid.cells:
             cell = grid.cells[RCCoords(grid_row, grid_col)]
             assert isinstance(cell, mod.DiscreteDirectional)
+            # if not cell.bins[dir]:
+            #    print(f"{cell.index=} {cell.bins=} {dir=}: ZERO")
             like += cell.bins[dir]
             matches += 1
         else:
