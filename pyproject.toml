@@ -1,27 +1,27 @@
 #### Black ####
 [tool.black]
 line-length = 79
-exclude = '''
-/(
-    mod
-  | octopytorch
-)/
-'''
+exclude = "octopytorch"
+
+
+#### Flake8 ####
+[tool.flake8]
+exclude = "octopytorch"
+extend-ignore = ["E203", "W503"]
 
 
 #### Mypy ####
 # Global options
 [tool.mypy]
 mypy_path = ".stubs"
-exclude = "(octopytorch/|mod/)"
-disallow_any_unimported = true
+exclude = "octopytorch/"
 disallow_untyped_defs = true
 no_implicit_optional = true
 show_error_codes = true 
 
 # Per-module overrides
 [[tool.mypy.overrides]]
-module = "mod.*"
+module = "mod.curation"
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
@@ -42,3 +42,4 @@ ignore_missing_imports = true
 #### PyTest ####
 [tool.pytest.ini_options]
 testpaths = "tests"
+addopts = "--cov=directionalflow --cov=mod --cov-report term-missing:skip-covered"

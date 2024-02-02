@@ -30,33 +30,45 @@ from directionalflow.utils import (
     plot_quivers,
     random_input,
 )
-from mod import Grid, Models
-from mod.OccupancyMap import OccupancyMap
-from mod.Visualisation import MapVisualisation
+from mod import grid, models
+from mod.occupancy import OccupancyMap
+from mod.visualisation import show_all
 
 logging.basicConfig(level=logging.INFO)
 
 # %% Network and dataset setup
 
-sys.modules["Grid"] = Grid
-sys.modules["Models"] = Models
+sys.modules["Grid"] = grid
+sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
 
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
-GRID_TRAIN_DATA = BASE_PATH / "models" / "discrete_directional.p"
-GRID_TEST_DATA = BASE_PATH / "models" / "discrete_directional_2.p"
+GRID_TRAIN_DATA = (
+    BASE_PATH
+    / "models"
+    / "bayes"
+    / "20121114"
+    / "discrete_directional_20121114_3121209.p"
+)
+GRID_TEST_DATA = (
+    BASE_PATH
+    / "models"
+    / "bayes"
+    / "20121118"
+    / "discrete_directional_20121118_8533469.p"
+)
 
 occ = OccupancyMap.from_yaml(MAP_METADATA)
-dyn_train: Grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
-dyn_test: Grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
+dyn_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
+dyn_test: grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 
-MapVisualisation(dyn_train, occ).show(occ_overlay=True)
+show_all(dyn_train, occ, occ_overlay=True, dpi=1000)
 
 # %%
 window_size = 64
-scale = 16
+scale = 8
 
 # transform = None
 transform = transforms.Compose(
@@ -116,7 +128,8 @@ trainer = Trainer(
 
 # %% Train
 
-trainer.train(epochs=100)
+epochs = 120
+trainer.train(epochs=epochs)
 
 # %% Save network weights
 
@@ -124,9 +137,8 @@ path = f"models/people_net{id_string}_{trainer.train_epochs}.pth"
 trainer.save(path)
 
 # %% Load network weights
-# epochs = trainer.train_epochs
-epochs = 100
 
+# epochs = trainer.train_epochs
 path = f"models/people_net{id_string}_{epochs}.pth"
 trainer.load(path)
 

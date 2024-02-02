@@ -1,6 +1,5 @@
 import logging
 from contextlib import nullcontext
-from enum import IntEnum
 from typing import Optional, Sequence, Set, Union
 
 import matplotlib.pyplot as plt
@@ -14,67 +13,14 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import trange
 
 from directionalflow.nets import PeopleFlow
-from mod.OccupancyMap import OccupancyMap
+from mod.occupancy import OccupancyMap
+from mod.utils import Direction
 
 logger = logging.getLogger(__name__)
 
 RowColumnPair = tuple[int, int]
 DataPoint = tuple[torch.Tensor, torch.Tensor]
 Loss = Union[torch.nn.MSELoss, torch.nn.KLDivLoss]
-
-_2PI = np.pi * 2
-
-
-class Direction(IntEnum):
-    E = 0
-    NE = 1
-    N = 2
-    NW = 3
-    W = 4
-    SW = 5
-    S = 6
-    SE = 7
-
-    @property
-    def rad(self) -> float:
-        return self.value * _2PI / 8
-
-    @property
-    def range(self) -> tuple[float, float]:
-        a = self.rad
-        return ((a - np.pi / 8) % _2PI, a + np.pi / 8)
-
-    @property
-    def u(self) -> float:
-        return np.cos(self.rad)
-
-    @property
-    def v(self) -> float:
-        return np.sin(self.rad)
-
-    @property
-    def uv(self) -> tuple[float, float]:
-        return (self.u, self.v)
-
-    def contains(self, rad: float) -> bool:
-        a = rad % _2PI
-        s, e = self.range
-        return (a - s) % _2PI < (e - s) % _2PI
-
-    @classmethod
-    def from_rad(cls, rad: float) -> "Direction":
-        for dir in Direction:
-            if dir.contains(rad):
-                return dir
-        raise ValueError(f"{rad} cannot be represented as Direction")
-
-    @classmethod
-    def from_points(
-        cls, p1: tuple[float, float], p2: tuple[float, float]
-    ) -> "Direction":
-        assert p1 != p2
-        rad = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])
-        return cls.from_rad(rad)
 
 
 def plot_dir(
@@ -132,17 +78,17 @@ def plot_quivers(
         occ = occupancy[top:bottom, left:right]
         dyn = dynamics[top_d:bottom_d, left_d:right_d, ...]
         YX = np.mgrid[0 : window_size // scale, 0 : window_size // scale]
-        extent = [
+        extent = (
             -0.5,
             window_size // scale - 0.5,
             -0.5,
             window_size // scale - 0.5,
-        ]
+        )
     else:
         occ = occupancy
         dyn = dynamics
         YX = np.mgrid[0 : dyn.shape[0], 0 : dyn.shape[1]]
-        extent = [-0.5, dyn.shape[0] - 0.5, -0.5, dyn.shape[1] - 0.5]
+        extent = (-0.5, dyn.shape[0] - 0.5, -0.5, dyn.shape[1] - 0.5)
     dyn = dyn.reshape((-1, 8))
     if normalize:
         dyn = scale_quivers(dyn)
@@ -244,16 +190,11 @@ def estimate_dynamics(
         nonempty_centers = torch.empty(
             (nonempty_patches.shape[0], net.out_channels)
         )
-        empty_center = net(empty_patch.to(device, dtype=torch.float))[
-            :, :, window.center[0], window.center[1]
-        ]
+        empty_center = net(empty_patch.to(device, dtype=torch.float))
         for i in trange(0, nonempty_patches.shape[0], batch_size):
             end = min(i + batch_size, nonempty_patches.shape[0])
             batch = nonempty_patches[i:end, ...].to(device, dtype=torch.float)
-            output = net(batch)
-            nonempty_centers[i:end] = output[
-                :, :, window.center[0], window.center[1]
-            ]
+            nonempty_centers[i:end] = net(batch)
         del nonempty_patches, empty_patch
 
         centers = torch.empty((num_pixels, net.out_channels))
@@ -286,7 +227,6 @@ class Trainer:
         self.valloader = valloader
         self.writer = writer
         self.train_epochs = 0
-        self.cr, self.cc = Window(net.window_size).center
 
     def _step(
         self,
@@ -303,7 +243,7 @@ class Trainer:
             self.optimizer.zero_grad()
 
         # forward
-        outputs = self.net(inputs)[..., self.cr, self.cc]
+        outputs = self.net(inputs)
         if isinstance(self.criterion, torch.nn.KLDivLoss):
             outputs = F.log_softmax(outputs, dim=1)
         loss = self.criterion(outputs, groundtruth)
@@ -322,7 +262,7 @@ class Trainer:
         else:
             assert self.valloader is not None
             dataloader = self.valloader
-            cm = torch.no_grad()
+            cm = torch.no_grad()  # type: ignore
 
         total_loss = 0.0
         for i, data in enumerate(dataloader):

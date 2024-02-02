@@ -1,15 +1,17 @@
 from unittest import mock
 
-import mod.Models as mod
 import pytest
-from directionalflow.data import DiscreteDirectionalDataset
-from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import Trainer
-from mod.Grid import Grid
-from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.optim import SGD
 from torch.utils.data import DataLoader
+
+import mod.models as mod
+from directionalflow.data import DiscreteDirectionalDataset
+from directionalflow.nets import DiscreteDirectional
+from directionalflow.utils import Trainer
+from mod.grid import Grid
+from mod.occupancy import OccupancyMap
+from mod.utils import RCCoords, XYCoords
 
 
 @pytest.fixture
@@ -22,7 +24,7 @@ def occupancy() -> OccupancyMap:
             "resolution": 1,
             "map": map,
             "binary_map": map,
-            "origin": [0, 2, 0],
+            "origin": XYCoords(0, 2),
         }
     )
     return occupancy
@@ -30,20 +32,20 @@ def occupancy() -> OccupancyMap:
 
 @pytest.fixture
 def grid() -> Grid:
-    grid = mock.MagicMock(spec=Grid)
-    cell1 = mod.DiscreteDirectional(coords=(0, 0), index=(0, 0), resolution=1)
-    cell2 = mod.DiscreteDirectional(coords=(0, 1), index=(0, 1), resolution=1)
-    cell1.bins[cell1.directions[0]]["probability"] = 1.0 / 2
-    cell1.bins[cell1.directions[5]]["probability"] = 1.0 / 2
-    cell2.bins[cell1.directions[1]]["probability"] = 1.0
-    grid.configure_mock(
-        **{
-            "resolution": 1000,
-            "cells": {(0, 0): cell1, (0, 1): cell2},
-            "origin": [0, 2, 0],
-        }
+    cell1 = mod.DiscreteDirectional(
+        coords=XYCoords(0, 2), index=RCCoords(0, 0), resolution=1
     )
-    return grid
+    cell2 = mod.DiscreteDirectional(
+        coords=XYCoords(1, 2), index=RCCoords(0, 1), resolution=1
+    )
+    cell1.bins = [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0]
+    cell2.bins = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    return Grid(
+        resolution=1,
+        origin=XYCoords(0, 2),
+        model=mod.DiscreteDirectional,
+        cells={RCCoords(0, 0): cell1, RCCoords(0, 1): cell2},
+    )
 
 
 @pytest.fixture

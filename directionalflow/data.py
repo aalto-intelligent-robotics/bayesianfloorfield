@@ -7,15 +7,10 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 from directionalflow.utils import Direction, RowColumnPair, Window
-from mod.Grid import Grid
-from mod.OccupancyMap import OccupancyMap
-
-
-def get_directional_prob(bins: dict) -> Sequence[float]:
-    """Encodes dynamics in order: [E, NE, ...]"""
-    return [
-        bins[d.rad]["probability"] if d.rad in bins else 0.0 for d in Direction
-    ]
+from mod.grid import Grid
+from mod.models import DiscreteDirectional
+from mod.occupancy import OccupancyMap
+from mod.utils import RCCoords
 
 
 class _RandomFlipPeopleFlow(torch.nn.Module):
@@ -145,16 +140,13 @@ class PeopleFlowDataset(Dataset):
         output_channels: int,
         scale: float = 1,
         transform: Optional[Callable] = None,
-        dynamics_in_mm: bool = True,
     ) -> None:
         super().__init__()
         self.occupancy = occupancy.binary_map
         self.map_origin = occupancy.origin
         self.map_size = self.occupancy.size
         self.dynamics = dynamics
-        self.res_ratio = occupancy.resolution / (
-            dynamics.resolution / (1000 if dynamics_in_mm else 1)
-        )
+        self.res_ratio = occupancy.resolution / dynamics.resolution
         self.output_channels = output_channels
         self.window_size = window_size
         self.indeces = self.get_indeces()
@@ -215,7 +207,6 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         window_size: int = 32,
         scale: float = 1,
         transform: Optional[Callable] = None,
-        dynamics_in_mm: bool = True,
     ) -> None:
         super().__init__(
             occupancy,
@@ -224,9 +215,9 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
             output_channels=8,
             scale=scale,
             transform=transform,
-            dynamics_in_mm=dynamics_in_mm,
         )
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
-        bins = self.dynamics.cells[center].bins
-        return np.array(get_directional_prob(bins), dtype=np.float32)
+        cell = self.dynamics.cells[RCCoords(center[0], center[1])]
+        assert isinstance(cell, DiscreteDirectional)
+        return np.array(cell.bins, dtype=np.float32)

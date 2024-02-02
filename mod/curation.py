@@ -3,22 +3,15 @@ import logging
 import numpy as np
 import pandas as pd
 
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-ch.setFormatter(formatter)
+logger = logging.getLogger(__name__)
 
 
-def wrap_to2pi(angle):
+def wrap_to2pi(angle: float) -> float:
     # TODO Description and logging
-    if angle < 0.0:
-        angle = 2.0 * np.pi + angle
-    return angle
+    return angle % (2 * np.pi)
 
 
-def mm2m(val):
+def mm2m(val: float) -> float:
     # TODO Description and logging
     return val / 1000.0
 
@@ -37,17 +30,13 @@ class DataCurator:
         @config/curator_shema.json)
         :type params: dict
         """
-        # setting logging
-        self.log = logging.getLogger(self.__class__.__name__)
-        self.log.setLevel(logging.DEBUG)
-        self.log.addHandler(ch)
         # load params
         self.params = params
         # variables
         self.input_file = None
         self.output_file = None
         # logging
-        self.log.info("Parameters for data curation {}".format(self.params))
+        logger.info("Parameters for data curation {}".format(self.params))
 
     def curate(self):
         """
@@ -61,7 +50,7 @@ class DataCurator:
         Function for curating large csv files in chunks.
         """
         header = True
-        self.log.info(
+        logger.info(
             "Processing in chunks of size {}".format(self.params["chunk_size"])
         )
         if "add_header" in self.params:
@@ -75,7 +64,7 @@ class DataCurator:
                 self.params["input_file"], chunksize=self.params["chunk_size"]
             )
         for i, chunk in enumerate(self.input_file):
-            self.log.info("Processing chunk {}".format(i))
+            logger.info("Processing chunk {}".format(i))
 
             if (
                 self.params["subsample"]["method"] != ""
@@ -110,7 +99,7 @@ class DataCurator:
         result = []
         if self.params["subsample"]["method"] == "line_keep":
             result = chunk.iloc[:: self.params["subsample"]["parameter"], :]
-        self.log.info(
+        logger.info(
             "Was {} rows, remained {} rows".format(
                 len(chunk.index), len(result.index)
             )
@@ -128,7 +117,7 @@ class DataCurator:
         """
         for c in self.params["drop_columns"]:
             chunk = chunk.drop(c, axis=1)
-            self.log.info("Dropping column: {}".format(c))
+            logger.info("Dropping column: {}".format(c))
         return chunk
 
     def __process_column(self, chunk):

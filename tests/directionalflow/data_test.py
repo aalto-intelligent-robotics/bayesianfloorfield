@@ -3,27 +3,13 @@ from typing import Callable, Sequence
 import numpy as np
 import pytest
 import torchvision.transforms as transforms
+
 from directionalflow.data import (
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,
     RandomRotationPeopleFlow,
     RandomVerticalFlipPeopleFlow,
-    get_directional_prob,
 )
-from mod.Grid import Grid
-
-
-@pytest.mark.parametrize(
-    ["cell", "d_expected"],
-    [
-        ((0, 0), [0.5, 0, 0, 0, 0, 0.5, 0, 0]),
-        ((0, 1), [0, 1.0, 0, 0, 0, 0, 0, 0]),
-    ],
-)
-def test_get_directional_prob(
-    cell: tuple, d_expected: Sequence, grid: Grid
-) -> None:
-    assert get_directional_prob(grid.cells[cell].bins) == d_expected
 
 
 @pytest.mark.parametrize(
