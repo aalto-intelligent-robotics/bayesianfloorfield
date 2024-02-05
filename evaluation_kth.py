@@ -140,7 +140,7 @@ for id in pbar:
     )
     like += like_t
     matches += matches_t
-    pbar.set_postfix({"avg likelihood": like / matches})  # type: ignore
+    pbar.set_postfix({"avg likelihood": like / matches})
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
     f"{like / matches:.3f} "
@@ -167,9 +167,7 @@ for id in pbar:
     like += like_t
     matches += matches_t
     missing += missing_t
-    pbar.set_postfix(  # type: ignore
-        {"avg likelihood": like / matches, "missing": missing}
-    )
+    pbar.set_postfix({"avg likelihood": like / matches, "missing": missing})
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
     f"{like / matches:.3f} (on {(len(evaluation_ids))} tracks)"

@@ -147,7 +147,7 @@ for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
         like += t_like
         matches += t_matches
         missing += t_missing
-        pbar.set_postfix(  # type: ignore
+        pbar.set_postfix(
             {"avg likelihood": like / matches, "missing": missing}
         )
     bayes_data[iterations] = {
@@ -192,9 +192,7 @@ for id in pbar:
     like += like_t
     matches += matches_t
     missing += missing_t
-    pbar.set_postfix(  # type: ignore
-        {"avg likelihood": like / matches, "missing": missing}
-    )
+    pbar.set_postfix({"avg likelihood": like / matches, "missing": missing})
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
     f"{like / matches:.3f} (on {(len(evaluation_ids))} tracks)"
@@ -219,9 +217,7 @@ for id in pbar:
     like += like_t
     matches += matches_t
     missing += missing_t
-    pbar.set_postfix(  # type: ignore
-        {"avg likelihood": like / matches, "missing": missing}
-    )
+    pbar.set_postfix({"avg likelihood": like / matches, "missing": missing})
 print(
     f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
     f"{like / matches:.3f} (on {(len(evaluation_ids))} tracks)"
