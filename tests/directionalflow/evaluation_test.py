@@ -8,6 +8,7 @@ from directionalflow.evaluation import (
     pixels_from_track,
     track_likelihood_model,
     track_likelihood_net,
+    track_likelihood_net_2,
 )
 from directionalflow.nets import DiscreteDirectional
 from mod.grid import Grid
@@ -64,6 +65,20 @@ def test_track_likelihood_net(occupancy: OccupancyMap) -> None:
     )
     assert matches == 3
     assert 0 <= like / matches <= 1
+
+
+def test_track_likelihood_net_2() -> None:
+    pixels = np.array(
+        [
+            [0.4, 0.5, np.pi],
+            [0.8, 1.5, np.pi / 2],
+            [0.7, 1.3, np.pi * 2],
+        ]
+    ).T
+    dynamics = np.array([[[1 / 8] * 8, [1 / 4] * 2 + [1 / 12] * 6]])
+    like, matches = track_likelihood_net_2(pixels, dynamics)
+    assert matches == 3
+    assert like == pytest.approx(1 / 8 + 1 / 4 + 1 / 12)
 
 
 @pytest.mark.parametrize(

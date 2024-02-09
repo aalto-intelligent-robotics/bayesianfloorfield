@@ -195,7 +195,7 @@ plot_quivers(inputs, outputs, dpi=1000)
 # %% Build the full dynamic map
 
 dyn_map = estimate_dynamics(
-    net, occ, device=device, batch_size=100, scale=scale
+    net, occ, device=device, batch_size=100, net_scale=scale
 )
 
 # %% Save full dynamic map

@@ -110,6 +110,20 @@ def track_likelihood_net(
     return (like, matches)
 
 
+def track_likelihood_net_2(
+    pixels: np.ndarray, dynamics: np.ndarray
+) -> tuple[float, int]:
+    like = 0
+    matches = 0
+    for i in range(pixels.shape[1]):
+        row, col = pixels[0:2, i]
+        center = (int(row), int(col))
+        dir = Direction.from_rad(pixels[2, i])
+        like += dynamics[center[0], center[1], dir]
+        matches += 1
+    return (like, matches)
+
+
 def track_likelihood_model(
     track: np.ndarray,
     grid: Grid,

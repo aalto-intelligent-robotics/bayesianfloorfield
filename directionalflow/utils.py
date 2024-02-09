@@ -10,7 +10,8 @@ from PIL import Image
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from tqdm import trange
+from torchvision.transforms.functional import resize
+from tqdm import tqdm, trange
 
 from directionalflow.nets import PeopleFlow
 from mod.occupancy import OccupancyMap
@@ -132,11 +133,12 @@ def estimate_dynamics(
     net: PeopleFlow,
     occupancy: Union[OccupancyMap, np.ndarray],
     scale: int = 1,
+    net_scale: int = 1,
     # TODO: crop: Optional[Sequence[int]] = None,  # (left, top, right, bottom)
     batch_size: int = 4,
     device: Optional[torch.device] = None,
 ) -> np.ndarray:
-    window = Window(net.window_size)
+    window = Window(net.window_size * net_scale)
     if not device:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
@@ -168,33 +170,45 @@ def estimate_dynamics(
     h, w = bin_map.shape
     channels = 1
     padded_map = np.pad(bin_map, window.pad_amount)
-    input = torch.from_numpy(np.expand_dims(padded_map, axis=(0, 1)))
+    input = torch.from_numpy(padded_map)
     del bin_map, padded_map
 
     kh, kw = window.size, window.size  # kernel size
     dh, dw = 1, 1  # stride
-    patches = input.unfold(2, kh, dh).unfold(3, kw, dw)
-    patches = patches.contiguous().view(-1, channels, kh, kw)
-    del input
-
-    num_pixels = patches.shape[0]
-    empty_patch = torch.zeros(
-        (1, 1, net.window_size, net.window_size), dtype=torch.uint8
+    patches = input.unfold(0, kh, dh).unfold(1, kw, dw)
+    ph, pw = patches.shape[0:2]
+    patches_scaled = torch.empty(
+        (ph * pw, channels, net.window_size, net.window_size),
+        dtype=torch.float,
     )
-    empty_i = (patches == empty_patch).all(dim=3).all(dim=2).squeeze()
+    for row_i, patch in enumerate(tqdm(patches)):
+        patches_scaled[row_i * pw : (row_i + 1) * pw, 0] = (
+            resize(
+                patch, size=(net.window_size, net.window_size), antialias=True
+            )
+            / 255.0
+        )
+    del input, patches
+
+    num_pixels = patches_scaled.shape[0]
+    empty_patch = torch.zeros(
+        (1, 1, net.window_size, net.window_size), dtype=torch.float
+    )
+    empty_i = (patches_scaled == empty_patch).all(dim=3).all(dim=2).squeeze()
     nonempty_i = torch.logical_not(empty_i)
-    nonempty_patches = patches[nonempty_i]
-    del patches
+    nonempty_patches = patches_scaled[nonempty_i]
+    del patches_scaled
 
     with torch.no_grad():
         nonempty_centers = torch.empty(
             (nonempty_patches.shape[0], net.out_channels)
         )
-        empty_center = net(empty_patch.to(device, dtype=torch.float))
+        empty_center: torch.Tensor = net(empty_patch.to(device=device))
         for i in trange(0, nonempty_patches.shape[0], batch_size):
             end = min(i + batch_size, nonempty_patches.shape[0])
-            batch = nonempty_patches[i:end, ...].to(device, dtype=torch.float)
-            nonempty_centers[i:end] = net(batch)
+            nonempty_centers[i:end] = net(
+                nonempty_patches[i:end, ...].to(device=device)
+            )
         del nonempty_patches, empty_patch
 
         centers = torch.empty((num_pixels, net.out_channels))

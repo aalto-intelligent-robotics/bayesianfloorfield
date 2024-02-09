@@ -20,6 +20,7 @@ from directionalflow.evaluation import (
     pixels_from_track,
     track_likelihood_model,
     track_likelihood_net,
+    track_likelihood_net_2,
 )
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Window, estimate_dynamics, plot_quivers
@@ -40,7 +41,7 @@ GRID_DATA = (
 
 NET_EPOCHS = 120
 NET_WINDOW_SIZE = 64
-NET_SCALE_FACTOR = 16
+NET_SCALE_FACTOR = 8
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 PLOT_DPI = 800
@@ -105,19 +106,15 @@ for id in ids:
 # %%
 
 center = (691, 925)
-inputs = (
-    np.asarray(
-        occupancy.binary_map.crop(window.corners(center)).resize(
-            (NET_WINDOW_SIZE, NET_WINDOW_SIZE), Image.ANTIALIAS
-        ),
-        "float",
+inputs = np.asarray(
+    occupancy.binary_map.crop(window.corners(center)).resize(
+        (NET_WINDOW_SIZE, NET_WINDOW_SIZE), Image.ANTIALIAS
     )
-    / 255.0
 )
 
 outputs = estimate_dynamics(net, inputs, device=DEVICE, batch_size=32)
 
-plot_quivers(inputs, outputs, dpi=PLOT_DPI)
+plot_quivers(inputs.astype(float) / 255.0, outputs, dpi=PLOT_DPI)
 plt.plot(NET_WINDOW_SIZE // 2, NET_WINDOW_SIZE // 2, "o", markersize=0.5)
 
 # %%
@@ -138,6 +135,38 @@ for id in pbar:
     like_t, matches_t = track_likelihood_net(
         p, occupancy, NET_WINDOW_SIZE, NET_SCALE_FACTOR, net, DEVICE
     )
+    like += like_t
+    matches += matches_t
+    pbar.set_postfix({"avg likelihood": like / matches})
+print(
+    f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
+    f"{like / matches:.3f} "
+    f"(on {len(evaluation_ids)} tracks)"
+)
+
+# %%
+
+print(f"Deep model: people_net{net_id_string} (V2)")
+
+evaluation_ids = range(len(tracks))
+# evaluation_ids = [5101]
+# evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
+# evaluation_ids = ids
+
+like = 0.0
+matches = 0
+dynamics = estimate_dynamics(
+    net,
+    occupancy,
+    scale=1,
+    net_scale=NET_SCALE_FACTOR,
+    device=DEVICE,
+    batch_size=50,
+)
+pbar = tqdm(evaluation_ids, postfix={"avg likelihood": 0})
+for id in pbar:
+    p = pixels_from_track(tracks[id], occupancy)
+    like_t, matches_t = track_likelihood_net_2(p, dynamics)
     like += like_t
     matches += matches_t
     pbar.set_postfix({"avg likelihood": like / matches})
