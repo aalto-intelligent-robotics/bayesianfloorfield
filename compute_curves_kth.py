@@ -28,7 +28,7 @@ sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/KTH_track/")
-BAYES_INCREMENT = 50000
+BAYES_INCREMENT = 10000
 
 # Change NET_MAP_PATH to the folder where data and models are located
 NET_MAP_PATH = Path("maps")
@@ -36,7 +36,7 @@ NET_EPOCHS = 120
 NET_WINDOW_SIZE = 64
 NET_SCALE_FACTOR = 8
 
-ALPHA = 100
+ALPHA = 5
 RUN_SUFFIX = ""
 
 BAYES_MAX_DATA = 421111
@@ -58,7 +58,7 @@ PLOT_DPI = 800
 grid_test: grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 net_id_string = f"_w{NET_WINDOW_SIZE}_s{NET_SCALE_FACTOR}_t_{NET_EPOCHS}"
-net_map = np.load(NET_MAP_PATH / f"map_atc{net_id_string}.npy")
+net_map = np.load(NET_MAP_PATH / f"map_kth{net_id_string}.npy")
 tracks = extract_tracks_from_grid(grid_test)
 
 # %%
