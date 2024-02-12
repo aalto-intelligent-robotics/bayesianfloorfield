@@ -84,7 +84,7 @@ def test_grid_assign_cell_prior_partial(bayesian_grid: Grid) -> None:
     assert cell2.priors == [1 / 8] * 8
 
 
-def test_grid_assign_cell_prior_missing(
+def test_grid_assign_cell_prior_missing_no_add_cells(
     bayesian_grid: Grid, caplog: pytest.LogCaptureFixture
 ) -> None:
     alpha = 2
@@ -97,3 +97,28 @@ def test_grid_assign_cell_prior_missing(
     with caplog.at_level(logging.WARNING):
         assign_cell_priors_to_grid(bayesian_grid, priors=priors, alpha=alpha)
         assert len(caplog.records) == 1
+
+
+def test_grid_assign_cell_prior_missing_add_cells(
+    bayesian_grid: Grid, caplog: pytest.LogCaptureFixture
+) -> None:
+    alpha = 2
+    priors = {RCCoords(0, 1): [1 / 4] * 2 + [1 / 12] * 6}
+    with caplog.at_level(logging.WARNING):
+        assign_cell_priors_to_grid(
+            bayesian_grid, priors=priors, alpha=alpha, add_missing_cells=True
+        )
+        assert len(caplog.records) == 0
+
+    priors = {RCCoords(0, 2): [1 / 4] * 2 + [1 / 12] * 6}
+    with caplog.at_level(logging.WARNING):
+        assign_cell_priors_to_grid(
+            bayesian_grid, priors=priors, alpha=alpha, add_missing_cells=True
+        )
+        assert len(caplog.records) == 0
+
+    cell = bayesian_grid.cells[RCCoords(0, 2)]
+    assert isinstance(cell, BayesianDiscreteDirectional)
+    assert cell.alpha == alpha
+    assert cell.priors == priors[RCCoords(0, 2)]
+    assert cell.bins == priors[RCCoords(0, 2)]

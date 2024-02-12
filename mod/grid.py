@@ -61,14 +61,27 @@ def assign_prior_to_grid(
 
 
 def assign_cell_priors_to_grid(
-    grid: Grid, priors: dict[RCCoords, list[Probability]], alpha: float
+    grid: Grid,
+    priors: dict[RCCoords, list[Probability]],
+    alpha: float,
+    add_missing_cells: bool = False,
 ) -> None:
     for cell_id in priors:
         cell = grid.cells.get(cell_id)
         if cell:
             assert isinstance(cell, BayesianDiscreteDirectional)
             cell.update_prior(priors[cell_id], alpha)
+        elif add_missing_cells:
+            cell = grid.model(
+                index=cell_id,
+                coords=XY_from_RC(cell_id, grid.origin, grid.resolution),
+                resolution=grid.resolution,
+            )
+            assert isinstance(cell, BayesianDiscreteDirectional)
+            cell.update_prior(priors[cell_id], alpha)
+            grid.cells[cell_id] = cell
         else:
             logger.warning(
-                f"Unable to assign prior to non-existing cell {cell_id}"
+                f"Unable to assign prior to non-existing cell {cell_id} and "
+                f"{add_missing_cells=}"
             )

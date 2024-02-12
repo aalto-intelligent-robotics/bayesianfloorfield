@@ -165,3 +165,5 @@ class BayesianDiscreteDirectional(DiscreteDirectional):
             assert np.isclose(
                 sum(self.bins), 1
             ), f"Bin probability sum equal to {sum(self.bins)}."
+        else:
+            self.bins = self.priors
