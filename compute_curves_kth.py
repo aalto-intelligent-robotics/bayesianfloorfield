@@ -20,17 +20,14 @@ from directionalflow.evaluation import (
 )
 from mod import grid, models
 from mod.occupancy import OccupancyMap
-from mod.utils import TDRC_from_XY, XYCoords
+from mod.utils import TDRC_from_XY
 from mod.visualisation import show_occupancy
 
 sys.modules["Grid"] = grid
 sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
-BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
-ATC_DAYS = {1: ("20121114", 3121209), 2: ("20121118", 8533469)}
-TRAIN_DAY = 1
-TEST_DAY = 2
+BASE_PATH = Path("/mnt/hdd/datasets/KTH_track/")
 BAYES_INCREMENT = 50000
 
 # Change NET_MAP_PATH to the folder where data and models are located
@@ -42,39 +39,24 @@ NET_SCALE_FACTOR = 8
 ALPHA = 100
 RUN_SUFFIX = ""
 
-ATC_TRAIN_DAY = ATC_DAYS[TRAIN_DAY][0]
-BAYES_MAX_DATA_TRAIN = ATC_DAYS[TRAIN_DAY][1]
-ATC_TEST_DAY = ATC_DAYS[TEST_DAY][0]
-BAYES_MAX_DATA_TEST = ATC_DAYS[TEST_DAY][1]
-MAP_METADATA = BASE_PATH / "localization_grid.yaml"
+BAYES_MAX_DATA = 421111
+MAP_METADATA = BASE_PATH / "map.yaml"
 GRID_BAYES_DATA = {
-    i: BASE_PATH
-    / "models"
-    / "bayes"
-    / ATC_TRAIN_DAY
-    / f"discrete_directional_{ATC_TRAIN_DAY}_{i:07d}.p"
-    for i in range(0, BAYES_MAX_DATA_TRAIN, BAYES_INCREMENT)
+    i: BASE_PATH / "models" / "bayes" / f"discrete_directional_kth_{i:07d}.p"
+    for i in range(0, BAYES_MAX_DATA, BAYES_INCREMENT)
 }
-GRID_BAYES_DATA[BAYES_MAX_DATA_TRAIN] = (
+GRID_BAYES_DATA[BAYES_MAX_DATA] = (
     BASE_PATH
     / "models"
     / "bayes"
-    / ATC_TRAIN_DAY
-    / f"discrete_directional_{ATC_TRAIN_DAY}_{BAYES_MAX_DATA_TRAIN:07d}.p"
+    / f"discrete_directional_kth_{BAYES_MAX_DATA:07d}.p"
 )
-GRID_TEST_DATA = (
-    BASE_PATH
-    / "models"
-    / "bayes"
-    / ATC_TEST_DAY
-    / f"discrete_directional_{ATC_TEST_DAY}_{BAYES_MAX_DATA_TEST:07d}.p"
-)
+GRID_TEST_DATA = GRID_BAYES_DATA[BAYES_MAX_DATA]
 
 PLOT_DPI = 800
 
 grid_test: grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 occupancy = OccupancyMap.from_yaml(MAP_METADATA)
-occupancy.origin = XYCoords(-60, -40)
 net_id_string = f"_w{NET_WINDOW_SIZE}_s{NET_SCALE_FACTOR}_t_{NET_EPOCHS}"
 net_map = np.load(NET_MAP_PATH / f"map_atc{net_id_string}.npy")
 tracks = extract_tracks_from_grid(grid_test)
@@ -168,9 +150,7 @@ for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     )
 
 with open(
-    f"curves/ATC_train{ATC_TRAIN_DAY}_test{ATC_TEST_DAY}_uniprior"
-    + ("_" + RUN_SUFFIX if RUN_SUFFIX else "")
-    + ".json",
+    "curves/KTH_uniprior" + ("_" + RUN_SUFFIX if RUN_SUFFIX else "") + ".json",
     "w",
 ) as f:
     json.dump(uni_bayes_data, f)
@@ -202,7 +182,7 @@ for cell_id, cell in grid_test.cells.items():
 net_bayes_data = {}
 for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
-    grid_bayes = pickle.load(open(grid_bayes_path_data, "rb"))
+    grid_bayes: grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
     print("Assigning network prior")
     grid.assign_cell_priors_to_grid(
         grid=grid_bayes, priors=net_prior, alpha=ALPHA, add_missing_cells=True
@@ -234,7 +214,7 @@ for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     )
 
 with open(
-    f"curves/ATC_train{ATC_TRAIN_DAY}_test{ATC_TEST_DAY}{net_id_string}"
+    f"curves/KTH{net_id_string}"
     + ("_" + RUN_SUFFIX if RUN_SUFFIX else "")
     + ".json",
     "w",
@@ -253,7 +233,7 @@ evaluation_ids = range(len(tracks))
 trad_data = {}
 for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
-    grid_bayes = pickle.load(open(grid_bayes_path_data, "rb"))
+    grid_bayes: grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
     like = 0.0
     matches = 0
     missing = 0
@@ -281,9 +261,7 @@ for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     )
 
 with open(
-    f"curves/ATC_train{ATC_TRAIN_DAY}_test{ATC_TEST_DAY}_trad"
-    + ("_" + RUN_SUFFIX if RUN_SUFFIX else "")
-    + ".json",
+    "curves/KTH_trad" + ("_" + RUN_SUFFIX if RUN_SUFFIX else "") + ".json",
     "w",
 ) as f:
     json.dump(trad_data, f)
