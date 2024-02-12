@@ -182,7 +182,7 @@ for cell_id, cell in grid_test.cells.items():
 net_bayes_data = {}
 for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
-    grid_bayes: grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
+    grid_bayes = pickle.load(open(grid_bayes_path_data, "rb"))
     print("Assigning network prior")
     grid.assign_cell_priors_to_grid(
         grid=grid_bayes, priors=net_prior, alpha=ALPHA, add_missing_cells=True
@@ -233,7 +233,7 @@ evaluation_ids = range(len(tracks))
 trad_data = {}
 for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
     print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
-    grid_bayes: grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
+    grid_bayes = pickle.load(open(grid_bayes_path_data, "rb"))
     like = 0.0
     matches = 0
     missing = 0
