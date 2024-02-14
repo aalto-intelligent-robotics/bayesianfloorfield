@@ -33,7 +33,7 @@ else:
     fig = plt.figure(dpi=300)
     for name, source_file in SOURCES_DAY1.items():
         with open(source_file) as json_file:
-            data: dict[str, dict] = json.load(json_file)
+            data = json.load(json_file)
         X = []
         Y = []
         for x, y in data.items():
