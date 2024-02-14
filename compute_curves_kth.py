@@ -28,7 +28,6 @@ sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/KTH_track/")
-BAYES_INCREMENT = 10000
 
 # Change NET_MAP_PATH to the folder where data and models are located
 NET_MAP_PATH = Path("maps")
@@ -39,19 +38,14 @@ NET_SCALE_FACTOR = 8
 ALPHA = 5
 RUN_SUFFIX = ""
 
-BAYES_MAX_DATA = 421111
+KTH_FILES = (BASE_PATH / "models" / "bayes").glob(
+    "discrete_directional_kth_*.p"
+)
 MAP_METADATA = BASE_PATH / "map.yaml"
 GRID_BAYES_DATA = {
-    i: BASE_PATH / "models" / "bayes" / f"discrete_directional_kth_{i:07d}.p"
-    for i in range(0, BAYES_MAX_DATA, BAYES_INCREMENT)
+    int(file.stem.split("_")[-1]): file for file in sorted(KTH_FILES)
 }
-GRID_BAYES_DATA[BAYES_MAX_DATA] = (
-    BASE_PATH
-    / "models"
-    / "bayes"
-    / f"discrete_directional_kth_{BAYES_MAX_DATA:07d}.p"
-)
-GRID_TEST_DATA = GRID_BAYES_DATA[BAYES_MAX_DATA]
+GRID_TEST_DATA = sorted(GRID_BAYES_DATA.items())[-1][1]
 
 PLOT_DPI = 800
 

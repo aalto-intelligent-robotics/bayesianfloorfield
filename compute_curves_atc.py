@@ -28,10 +28,9 @@ sys.modules["Models"] = models
 
 # Change BASE_PATH to the folder where data and models are located
 BASE_PATH = Path("/mnt/hdd/datasets/ATC/")
-ATC_DAYS = {1: ("20121114", 3121209), 2: ("20121118", 8533469)}
+ATC_DAYS = {1: "20121114", 2: "20121118"}
 TRAIN_DAY = 1
 TEST_DAY = 2
-BAYES_INCREMENT = 50000
 
 # Change NET_MAP_PATH to the folder where data and models are located
 NET_MAP_PATH = Path("maps")
@@ -42,33 +41,19 @@ NET_SCALE_FACTOR = 8
 ALPHA = 5
 RUN_SUFFIX = ""
 
-ATC_TRAIN_DAY = ATC_DAYS[TRAIN_DAY][0]
-BAYES_MAX_DATA_TRAIN = ATC_DAYS[TRAIN_DAY][1]
-ATC_TEST_DAY = ATC_DAYS[TEST_DAY][0]
-BAYES_MAX_DATA_TEST = ATC_DAYS[TEST_DAY][1]
+ATC_TRAIN_DAY = ATC_DAYS[TRAIN_DAY]
+ATC_TEST_DAY = ATC_DAYS[TEST_DAY]
+ATC_TRAIN_FILES = (BASE_PATH / "models" / "bayes" / ATC_TRAIN_DAY).glob(
+    f"discrete_directional_{ATC_TRAIN_DAY}_*.p"
+)
+ATC_TEST_FILES = (BASE_PATH / "models" / "bayes" / ATC_TEST_DAY).glob(
+    f"discrete_directional_{ATC_TEST_DAY}_*.p"
+)
 MAP_METADATA = BASE_PATH / "localization_grid.yaml"
 GRID_BAYES_DATA = {
-    i: BASE_PATH
-    / "models"
-    / "bayes"
-    / ATC_TRAIN_DAY
-    / f"discrete_directional_{ATC_TRAIN_DAY}_{i:07d}.p"
-    for i in range(0, BAYES_MAX_DATA_TRAIN, BAYES_INCREMENT)
+    int(file.stem.split("_")[-1]): file for file in sorted(ATC_TRAIN_FILES)
 }
-GRID_BAYES_DATA[BAYES_MAX_DATA_TRAIN] = (
-    BASE_PATH
-    / "models"
-    / "bayes"
-    / ATC_TRAIN_DAY
-    / f"discrete_directional_{ATC_TRAIN_DAY}_{BAYES_MAX_DATA_TRAIN:07d}.p"
-)
-GRID_TEST_DATA = (
-    BASE_PATH
-    / "models"
-    / "bayes"
-    / ATC_TEST_DAY
-    / f"discrete_directional_{ATC_TEST_DAY}_{BAYES_MAX_DATA_TEST:07d}.p"
-)
+GRID_TEST_DATA = sorted(ATC_TEST_FILES)[-1]
 
 PLOT_DPI = 800
 

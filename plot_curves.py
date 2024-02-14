@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 PLOT_KTH = True  # if False, plots ATC
 ATC_DAYS = {1: ("20121114", 3121209), 2: ("20121118", 8533469)}
+NUM_POINTS = -1
 
 files_kth = Path("curves").glob("KTH_*.json")
 files_day1 = Path("curves").glob(f"ATC_train{ATC_DAYS[1][0]}*.json")
@@ -24,7 +25,9 @@ if PLOT_KTH:
         for x, y in data.items():
             X.append(int(x))
             Y.append(float(y["avg_like"]))
-        plt.plot(X, Y, linestyle="dotted", label=name)
+        plt.plot(
+            X[:NUM_POINTS], Y[:NUM_POINTS], linestyle="dotted", label=name
+        )
     plt.legend(loc="lower right")
 else:
     fig = plt.figure(dpi=300)
@@ -36,7 +39,9 @@ else:
         for x, y in data.items():
             X.append(int(x))
             Y.append(float(y["avg_like"]))
-        plt.plot(X, Y, linestyle="dotted", label=name)
+        plt.plot(
+            X[:NUM_POINTS], Y[:NUM_POINTS], linestyle="dotted", label=name
+        )
     plt.legend(loc="lower right")
     # plt.show()
 
@@ -48,5 +53,7 @@ else:
         for x, y in data.items():
             X.append(int(x))
             Y.append(float(y["avg_like"]))
-        plt.plot(X, Y, linestyle="dotted", label=name)
+        plt.plot(
+            X[:NUM_POINTS], Y[:NUM_POINTS], linestyle="dotted", label=name
+        )
     plt.legend(loc="lower right")
