@@ -25,9 +25,7 @@ if PLOT_KTH:
         for x, y in data.items():
             X.append(int(x))
             Y.append(float(y["avg_like"]))
-        plt.plot(
-            X[:NUM_POINTS], Y[:NUM_POINTS], linestyle="dotted", label=name
-        )
+        plt.plot(X[:NUM_POINTS], Y[:NUM_POINTS], label=name)
     plt.legend(loc="lower right")
 else:
     fig = plt.figure(dpi=300)
@@ -39,9 +37,7 @@ else:
         for x, y in data.items():
             X.append(int(x))
             Y.append(float(y["avg_like"]))
-        plt.plot(
-            X[:NUM_POINTS], Y[:NUM_POINTS], linestyle="dotted", label=name
-        )
+        plt.plot(X[:NUM_POINTS], Y[:NUM_POINTS], label=name)
     plt.legend(loc="lower right")
     # plt.show()
 
@@ -53,7 +49,5 @@ else:
         for x, y in data.items():
             X.append(int(x))
             Y.append(float(y["avg_like"]))
-        plt.plot(
-            X[:NUM_POINTS], Y[:NUM_POINTS], linestyle="dotted", label=name
-        )
+        plt.plot(X[:NUM_POINTS], Y[:NUM_POINTS], label=name)
     plt.legend(loc="lower right")
