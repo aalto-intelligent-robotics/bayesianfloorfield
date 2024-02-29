@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import scipy.io as sio
 import torch
+from joblib import Parallel, delayed
 from PIL import Image
 from tqdm import tqdm
 
@@ -12,6 +13,7 @@ import mod.models as mod
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Direction, OccupancyMap, Window
 from mod.grid import Grid
+from mod.models import Cell
 from mod.utils import RC_from_XY, RCCoords, XYCoords
 
 
@@ -27,27 +29,50 @@ def extract_tracks_from_grid(
     returns [tracks[x, y, motion_angle]] if with_groundtruth = False (default),
     otherwise [tracks[x, y, motion_angle, bin, cell_row, cell_col]]
     """
-    columns = ["time", "person_id", "x", "y", "motion_angle", "bin"]
-    data = pd.DataFrame()
-    for cell in tqdm(grid.cells.values()):
+
+    def extract_data(cell: Cell) -> pd.DataFrame:
+        """Extract data from a single cell"""
+        columns = ["time", "person_id", "x", "y", "motion_angle", "bin"]
         cell_data = cell.data[columns].assign(
             cell_row=cell.index.row, cell_col=cell.index.column
         )
-        data = pd.concat([data, cell_data])
+        return cell_data
 
-    data_grouped = data.groupby("person_id")
-    data_list = np.empty(len(data_grouped), dtype=object)
+    def process_person(
+        person_data: pd.DataFrame, columns_to_export: list[str]
+    ) -> np.ndarray:
+        """Process data for a single person"""
+        person_data.sort_values("time", inplace=True)
+        return person_data[columns_to_export].to_numpy().T
 
     columns_to_export = ["x", "y", "motion_angle"]
     if with_grountruth:
         columns_to_export += ["bin", "cell_row", "cell_col"]
 
-    i = 0
-    for _, person_data in tqdm(data_grouped):
-        person_data.sort_values("time", inplace=True)
-        data_list[i] = person_data[columns_to_export].to_numpy().T
-        i += 1
-    return data_list
+    # Parallel extraction of cell data
+    result = Parallel(n_jobs=-1)(
+        delayed(extract_data)(cell)
+        for cell in tqdm(grid.cells.values(), desc="Extracting data from grid")
+    )
+    data = pd.concat(result)
+
+    # Group the data by person_id
+    data_grouped = data.groupby("person_id")
+
+    # Parallel processing of person data
+    data_list = Parallel(n_jobs=-1)(
+        delayed(process_person)(person_data, columns_to_export)
+        for _, person_data in tqdm(
+            data_grouped, desc="Grouping data by trajectory"
+        )
+    )
+
+    data_array = np.empty(len(data_list), dtype=object)
+
+    for i in range(len(data_list)):
+        data_array[i] = data_list[i]
+
+    return data_array
 
 
 def pixels_from_track(
