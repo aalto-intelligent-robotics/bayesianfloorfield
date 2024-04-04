@@ -4,6 +4,7 @@
 # %% Imports
 
 import json
+import logging
 import pickle
 import random
 import sys
@@ -11,17 +12,18 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from tqdm import tqdm
 
 from directionalflow.evaluation import (
     append_cell_indeces_to_track,
+    evaluate_likelihood_iterations,
     extract_tracks_from_grid,
-    track_likelihood_model,
 )
 from mod import grid, models
 from mod.occupancy import OccupancyMap
 from mod.utils import TDRC_from_XY
 from mod.visualisation import show_occupancy
+
+logging.basicConfig(level=logging.INFO)
 
 sys.modules["Grid"] = grid
 sys.modules["Models"] = models
@@ -33,7 +35,7 @@ BASE_PATH = Path("/mnt/hdd/datasets/KTH_track/")
 NET_MAP_PATH = Path("maps")
 NET_EPOCHS = 120
 NET_WINDOW_SIZE = 64
-NET_SCALE_FACTOR = 8
+NET_SCALE_FACTOR = 20
 
 ALPHA = 5
 RUN_SUFFIX = ""
@@ -94,7 +96,9 @@ plt.grid(True, linewidth=0.1)
 plt.xticks(range(0, grid_test.dimensions.column + 1))
 plt.yticks(range(0, grid_test.dimensions.row + 1))
 for id in ids:
-    t = append_cell_indeces_to_track(tracks[id], grid_test)
+    t = append_cell_indeces_to_track(
+        tracks[id], grid_test.origin, grid_test.resolution
+    )
     X = t[0, :] - grid_test.origin[0]
     Y = t[1, :] - grid_test.origin[1]
     U = t[-1, :] + grid_test.resolution / 2
@@ -104,44 +108,18 @@ for id in ids:
 
 # %%
 
-print("Bayesian model (uniform prior)")
-
 evaluation_ids = range(len(tracks))
 # evaluation_ids = [5101]
 # evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
 # evaluation_ids = ids
 
-uni_bayes_data = {}
-for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
-    print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
-    grid_bayes: grid.Grid = pickle.load(open(grid_bayes_path_data, "rb"))
-    print("Assigning uniform prior")
-    grid.assign_prior_to_grid(grid=grid_bayes, prior=[1 / 8] * 8, alpha=ALPHA)
-    like = 0.0
-    matches = 0
-    missing = 0
-    pbar = tqdm(evaluation_ids, postfix={"avg likelihood": 0, "missing": 0})
-    for id in pbar:
-        t = append_cell_indeces_to_track(tracks[id], grid_test)
-        t_like, t_matches, t_missing = track_likelihood_model(t, grid_bayes)
-        like += t_like
-        matches += t_matches
-        missing += t_missing
-        pbar.set_postfix(
-            {"avg likelihood": like / matches, "missing": missing}
-        )
-    uni_bayes_data[iterations] = {
-        "total_like": like,
-        "matches": matches,
-        "avg_like": like / matches if matches else 0.0,
-        "num_tracks": len(evaluation_ids),
-        "missing": missing,
-    }
-    print(
-        f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-        f"{like / matches if matches else 0.0:.3f} "
-        f"(on {len(evaluation_ids)} tracks, {missing}/{matches} cell missed)"
-    )
+# %%
+
+print("Bayesian model (uniform prior)")
+
+uni_bayes_data = evaluate_likelihood_iterations(
+    GRID_BAYES_DATA, tracks[evaluation_ids], [1 / 8] * 8, ALPHA
+)
 
 with open(
     "curves/KTH_uniprior" + ("_" + RUN_SUFFIX if RUN_SUFFIX else "") + ".json",
@@ -152,11 +130,6 @@ with open(
 # %%
 
 print("Bayesian model (network prior)")
-
-evaluation_ids = range(len(tracks))
-# evaluation_ids = [5101]
-# evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
-# evaluation_ids = ids
 
 net_prior = {}
 for cell_id, cell in grid_test.cells.items():
@@ -173,39 +146,9 @@ for cell_id, cell in grid_test.cells.items():
     except ValueError:
         net_prior[cell_id] = [1 / 8] * 8
 
-net_bayes_data = {}
-for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
-    print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
-    grid_bayes = pickle.load(open(grid_bayes_path_data, "rb"))
-    print("Assigning network prior")
-    grid.assign_cell_priors_to_grid(
-        grid=grid_bayes, priors=net_prior, alpha=ALPHA, add_missing_cells=True
-    )
-    like = 0.0
-    matches = 0
-    missing = 0
-    pbar = tqdm(evaluation_ids, postfix={"avg likelihood": 0, "missing": 0})
-    for id in pbar:
-        t = append_cell_indeces_to_track(tracks[id], grid_test)
-        t_like, t_matches, t_missing = track_likelihood_model(t, grid_bayes)
-        like += t_like
-        matches += t_matches
-        missing += t_missing
-        pbar.set_postfix(
-            {"avg likelihood": like / matches, "missing": missing}
-        )
-    net_bayes_data[iterations] = {
-        "total_like": like,
-        "matches": matches,
-        "avg_like": like / matches if matches else 0.0,
-        "num_tracks": len(evaluation_ids),
-        "missing": missing,
-    }
-    print(
-        f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-        f"{like / matches if matches else 0.0:.3f} "
-        f"(on {len(evaluation_ids)} tracks, {missing}/{matches} cell missed)"
-    )
+net_bayes_data = evaluate_likelihood_iterations(
+    GRID_BAYES_DATA, tracks[evaluation_ids], net_prior, ALPHA
+)
 
 with open(
     f"curves/KTH{net_id_string}"
@@ -219,68 +162,12 @@ with open(
 
 print("Traditional model (no prior)")
 
-evaluation_ids = range(len(tracks))
-# evaluation_ids = [5101]
-# evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
-# evaluation_ids = ids
-
-trad_data = {}
-for iterations, grid_bayes_path_data in GRID_BAYES_DATA.items():
-    print(f"Iterations: {iterations} - file {grid_bayes_path_data.name}")
-    grid_bayes = pickle.load(open(grid_bayes_path_data, "rb"))
-    like = 0.0
-    matches = 0
-    missing = 0
-    pbar = tqdm(evaluation_ids, postfix={"avg likelihood": 0, "missing": 0})
-    for id in pbar:
-        t = append_cell_indeces_to_track(tracks[id], grid_test)
-        t_like, t_matches, t_missing = track_likelihood_model(t, grid_bayes)
-        like += t_like
-        matches += t_matches
-        missing += t_missing
-        pbar.set_postfix(
-            {"avg likelihood": like / matches, "missing": missing}
-        )
-    trad_data[iterations] = {
-        "total_like": like,
-        "matches": matches,
-        "avg_like": like / matches if matches else 0.0,
-        "num_tracks": len(evaluation_ids),
-        "missing": missing,
-    }
-    print(
-        f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-        f"{like / matches if matches else 0.0:.3f} "
-        f"(on {len(evaluation_ids)} tracks, {missing}/{matches} cell missed)"
-    )
+trad_data = evaluate_likelihood_iterations(
+    GRID_BAYES_DATA, tracks[evaluation_ids]
+)
 
 with open(
     "curves/KTH_trad" + ("_" + RUN_SUFFIX if RUN_SUFFIX else "") + ".json",
     "w",
 ) as f:
     json.dump(trad_data, f)
-
-# %%
-
-print("Optimal model")
-
-evaluation_ids = range(len(tracks))
-# evaluation_ids = [5101]
-# evaluation_ids = [random.randint(0, len(tracks) - 1) for i in range(10)]
-# evaluation_ids = ids
-
-like = 0.0
-matches = 0
-missing = 0
-pbar = tqdm(evaluation_ids, postfix={"avg likelihood": 0, "missing": 0})
-for id in pbar:
-    t = append_cell_indeces_to_track(tracks[id], grid_test)
-    like_t, matches_t, missing_t = track_likelihood_model(t, grid_test)
-    like += like_t
-    matches += matches_t
-    missing += missing_t
-    pbar.set_postfix({"avg likelihood": like / matches, "missing": missing})
-print(
-    f"chance: {1 / 8}, total like: {like:.3f}, avg like: "
-    f"{like / matches:.3f} (on {(len(evaluation_ids))} tracks)"
-)

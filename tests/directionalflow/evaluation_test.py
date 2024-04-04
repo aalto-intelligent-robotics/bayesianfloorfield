@@ -5,6 +5,8 @@ import pytest
 
 from directionalflow.evaluation import (
     append_cell_indeces_to_track,
+    evaluate_likelihood,
+    evaluate_likelihood_iterations,
     pixels_from_track,
     track_likelihood_model,
     track_likelihood_net,
@@ -13,6 +15,7 @@ from directionalflow.evaluation import (
 from directionalflow.nets import DiscreteDirectional
 from mod.grid import Grid
 from mod.occupancy import OccupancyMap
+from mod.utils import RCCoords
 
 
 def test_pixels_from_track(occupancy: OccupancyMap) -> None:
@@ -48,7 +51,9 @@ def test_append_cell_indeces_to_track(grid: Grid) -> None:
             [1.9, 3.4, np.pi / 6, 1, 1],
         ]
     ).T
-    assert append_cell_indeces_to_track(track, grid) == pytest.approx(expected)
+    assert append_cell_indeces_to_track(
+        track, grid.origin, grid.resolution
+    ) == pytest.approx(expected)
 
 
 def test_track_likelihood_net(occupancy: OccupancyMap) -> None:
@@ -104,3 +109,89 @@ def test_track_likelihood_model(
     assert like == pytest.approx(expected_like)
     assert matches == expected_matches
     assert missing == 1
+
+
+def test_evaluate_likelihood(grid: Grid, tracks: list[np.ndarray]) -> None:
+    exp_like_per_track = 0.5 + 1.0 + 1 / 8
+    result = evaluate_likelihood(grid, tracks)
+    assert result["total_like"] == pytest.approx(exp_like_per_track * 2)
+    assert result["avg_like"] == pytest.approx(exp_like_per_track / 3)
+    assert result["num_tracks"] == pytest.approx(2)
+    assert result["matches"] == 6
+    assert result["missing"] == 2
+
+
+def test_evaluate_likelihood_wrong_prior(
+    grid: Grid, tracks: list[np.ndarray]
+) -> None:
+    with pytest.raises(ValueError):
+        evaluate_likelihood(grid, tracks, prior=True, alpha=1)  # type: ignore
+
+
+def test_evaluate_likelihood_uniprior(
+    grid: Grid, tracks: list[np.ndarray]
+) -> None:
+    a = 2
+    exp_like_per_track = (
+        (0.5 * 2 + 1 / 8 * a) / (a + 2) + (1.0 + 1 / 8 * a) / (a + 1) + 1 / 8
+    )
+    result = evaluate_likelihood(grid, tracks, prior=[1 / 8] * 8, alpha=a)
+    assert result["total_like"] == pytest.approx(exp_like_per_track * 2)
+    assert result["avg_like"] == pytest.approx(exp_like_per_track / 3)
+    assert result["num_tracks"] == pytest.approx(2)
+    assert result["matches"] == 6
+    assert result["missing"] == 2
+
+
+def test_evaluate_likelihood_uniprior_missing_alpha(
+    grid: Grid, tracks: list[np.ndarray]
+) -> None:
+    with pytest.raises(AssertionError):
+        evaluate_likelihood(grid, tracks, prior=[1 / 8] * 8)
+
+
+def test_evaluate_likelihood_cellprior(
+    grid: Grid, tracks: list[np.ndarray]
+) -> None:
+    a = 10
+    exp_like_per_track = (
+        (0.5 * 2 + 1 / 8 * a) / (a + 2) + (1.0 + 1 / 4 * a) / (a + 1) + 1 / 8
+    )
+    result = evaluate_likelihood(
+        grid,
+        tracks,
+        prior={
+            RCCoords(0, 0): [1 / 8] * 8,
+            RCCoords(0, 1): [1 / 4] * 2 + [1 / 12] * 6,
+        },
+        alpha=10,
+    )
+    assert result["total_like"] == pytest.approx(exp_like_per_track * 2)
+    assert result["avg_like"] == pytest.approx(exp_like_per_track / 3)
+    assert result["num_tracks"] == pytest.approx(2)
+    assert result["matches"] == 6
+    assert result["missing"] == 2
+
+
+def test_evaluate_likelihood_cellprior_missing_alpha(
+    grid: Grid, tracks: list[np.ndarray]
+) -> None:
+    with pytest.raises(AssertionError):
+        evaluate_likelihood(
+            grid,
+            tracks,
+            prior={
+                RCCoords(0, 0): [1 / 8] * 8,
+                RCCoords(0, 1): [1 / 4] * 2 + [1 / 12] * 6,
+            },
+        )
+
+
+def test_evaluate_likelihood_iterations(
+    grid: Grid, tracks: list[np.ndarray]
+) -> None:
+    grid_iterations = {0: grid, 10: grid, 20: grid}
+    results = evaluate_likelihood_iterations(grid_iterations, tracks)
+    assert list(results.keys()) == [0, 10, 20]
+    assert results[0] == results[10]
+    assert results[0] == results[20]

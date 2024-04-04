@@ -43,11 +43,32 @@ def bayesian_grid() -> Grid:
     )
     cell1.bins = [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0]
     cell2.bins = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    columns = [
+        "time",
+        "person_id",
+        "x",
+        "y",
+        "motion_angle",
+        "row",
+        "col",
+        "bin",
+    ]
+    cell1.data = pd.DataFrame(
+        [
+            [0, 0, 0.4, 2.5, 0, 0, 0, 0],
+            [0.1, 0, 0.6, 2.2, 3.14159 * 5 / 4, 0, 0, 5],
+        ],
+        columns=columns,
+    )
+    cell2.data = pd.DataFrame(
+        [[0.2, 1, 1.5, 2.8, 3.14159 / 4, 0, 1, 1]], columns=columns
+    )
     return Grid(
         resolution=1,
         origin=XYCoords(0, 2),
         model=mod.BayesianDiscreteDirectional,
         cells={RCCoords(0, 0): cell1, RCCoords(0, 1): cell2},
+        total_count=3,
     )
 
 

@@ -1,23 +1,26 @@
 import json
 from pathlib import Path
+from typing import Optional
 
 import matplotlib.pyplot as plt
 
-PLOT_KTH = True  # if False, plots ATC
+PLOT_KTH = True
+PLOT_ATC = True
 ATC_DAYS = {1: ("20121114", 3121209), 2: ("20121118", 8533469)}
-NUM_POINTS = -1
+NUM_POINTS = 71
 
-files_kth = Path("curves").glob("KTH_*.json")
-files_day1 = Path("curves").glob(f"ATC_train{ATC_DAYS[1][0]}*.json")
-files_day2 = Path("curves").glob(f"ATC_train{ATC_DAYS[2][0]}*.json")
+files_kth = Path("curves/IROS").glob("KTH_*.json")
+files_day1 = Path("curves/IROS").glob(f"ATC_train{ATC_DAYS[1][0]}*.json")
 
 SOURCES_KTH = {file.stem: file for file in files_kth}
 SOURCES_DAY1 = {file.stem: file for file in files_day1}
-SOURCES_DAY2 = {file.stem: file for file in files_day2}
 
-if PLOT_KTH:
-    fig = plt.figure(dpi=300)
-    for name, source_file in SOURCES_KTH.items():
+
+def curve_plot(
+    curves: dict[str, Path], num_points: Optional[int] = None
+) -> None:
+    plt.figure(dpi=300)
+    for name, source_file in curves.items():
         with open(source_file) as json_file:
             data: dict[str, dict] = json.load(json_file)
         X = []
@@ -25,29 +28,17 @@ if PLOT_KTH:
         for x, y in data.items():
             X.append(int(x))
             Y.append(float(y["avg_like"]))
-        plt.plot(X[:NUM_POINTS], Y[:NUM_POINTS], label=name)
+        plt.plot(
+            X[: num_points if num_points else -1],
+            Y[: num_points if num_points else -1],
+            label=name,
+        )
     plt.legend(loc="lower right")
-else:
-    fig = plt.figure(dpi=300)
-    for name, source_file in SOURCES_DAY1.items():
-        with open(source_file) as json_file:
-            data = json.load(json_file)
-        X = []
-        Y = []
-        for x, y in data.items():
-            X.append(int(x))
-            Y.append(float(y["avg_like"]))
-        plt.plot(X[:NUM_POINTS], Y[:NUM_POINTS], label=name)
-    plt.legend(loc="lower right")
-    # plt.show()
+    plt.xlabel("number of observations")
+    plt.ylabel(r"$\mathcal{L}$")
 
-    for name, source_file in SOURCES_DAY2.items():
-        with open(source_file) as json_file:
-            data = json.load(json_file)
-        X = []
-        Y = []
-        for x, y in data.items():
-            X.append(int(x))
-            Y.append(float(y["avg_like"]))
-        plt.plot(X[:NUM_POINTS], Y[:NUM_POINTS], label=name)
-    plt.legend(loc="lower right")
+
+if PLOT_KTH:
+    curve_plot(curves=SOURCES_KTH, num_points=NUM_POINTS)
+if PLOT_ATC:
+    curve_plot(curves=SOURCES_DAY1, num_points=NUM_POINTS)

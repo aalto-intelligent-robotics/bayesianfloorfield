@@ -1,9 +1,7 @@
 from typing import Optional
 
 import numpy as np
-from matplotlib import colormaps
 from matplotlib import pyplot as plt
-from matplotlib.colors import Normalize
 
 from mod.grid import Grid
 from mod.models import BayesianDiscreteDirectional, DiscreteDirectional
@@ -42,43 +40,35 @@ def show_discrete_directional(
     occ: Optional[OccupancyMap] = None,
     occ_overlay: bool = False,
     dpi: int = 100,
+    save_name: Optional[str] = None,
 ) -> None:
     plt.figure(dpi=dpi)
     X = []
     Y = []
     U = []
     V = []
-    C = []
-    P = []
     for key, cell in grid.cells.items():
         assert isinstance(cell, DiscreteDirectional)
-        for i, p in enumerate(cell.bins):
-            if p > 0:
-                X.append(key.column)
-                Y.append(key.row)
-                u, v = polar2cart(cell.directions[i], p)
-                U.append(u)
-                V.append(v)
-                C.append(p)
-                P.append(cell.probability)
-    P = list(np.array(P) / max(P))
-    norm = Normalize()
-    norm.autoscale(C)
-    colormap = colormaps["cividis"]
+        normalized_bins = cell.bins / np.max(cell.bins)
+        X.append([key.column] * 8)
+        Y.append([key.row] * 8)
+        U.append(
+            [
+                polar2cart(cell.directions[i], normalized_bins[i])[0]
+                for i in range(8)
+            ]
+        )
+        V.append(
+            [
+                polar2cart(cell.directions[i], normalized_bins[i])[1]
+                for i in range(8)
+            ]
+        )
     if occ and occ_overlay:
         show_occupancy(occ)
-    plt.quiver(
-        X,
-        Y,
-        U,
-        V,
-        color=colormap(norm(C)),
-        angles="xy",
-        scale_units="xy",
-        scale=1,
-        minshaft=2,
-        # alpha=P,
-    )
+    plt.quiver(X, Y, U, V, scale_units="xy", scale=2, minshaft=2, minlength=0)
+    if save_name:
+        plt.savefig(save_name + ".eps", format="eps")
 
 
 def show_occupancy(occ: OccupancyMap) -> None:

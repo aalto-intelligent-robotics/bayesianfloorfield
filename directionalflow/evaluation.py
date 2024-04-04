@@ -1,5 +1,6 @@
+import pickle
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -12,8 +13,13 @@ from tqdm import tqdm
 import mod.models as mod
 from directionalflow.nets import DiscreteDirectional
 from directionalflow.utils import Direction, OccupancyMap, Window
-from mod.grid import Grid
-from mod.models import Cell
+from mod.grid import (
+    Grid,
+    PositiveFloat,
+    assign_cell_priors_to_grid,
+    assign_prior_to_grid,
+)
+from mod.models import Cell, Probability
 from mod.utils import RC_from_XY, RCCoords, XYCoords
 
 
@@ -88,11 +94,13 @@ def pixels_from_track(
     return pixels
 
 
-def append_cell_indeces_to_track(track: np.ndarray, grid: Grid) -> np.ndarray:
+def append_cell_indeces_to_track(
+    track: np.ndarray, grid_origin: XYCoords, grid_resolution: PositiveFloat
+) -> np.ndarray:
     cell_indeces = np.empty((2, track.shape[1]))
     for i, point in enumerate(track.T):
         cell = RC_from_XY(
-            XYCoords(point[0], point[1]), grid.origin, grid.resolution
+            XYCoords(point[0], point[1]), grid_origin, grid_resolution
         )
         cell_indeces[0, i] = cell.row
         cell_indeces[1, i] = cell.column
@@ -165,8 +173,6 @@ def track_likelihood_model(
         if (grid_row, grid_col) in grid.cells:
             cell = grid.cells[RCCoords(grid_row, grid_col)]
             assert isinstance(cell, mod.DiscreteDirectional)
-            # if not cell.bins[dir]:
-            #    print(f"{cell.index=} {cell.bins=} {dir=}: ZERO")
             like += cell.bins[dir]
             matches += 1
         else:
@@ -177,3 +183,74 @@ def track_likelihood_model(
                     like += 1 / 8
 
     return (like, matches, missing)
+
+
+def evaluate_likelihood(
+    grid: Union[Path, Grid],
+    groundtruth_tracks: Sequence[np.ndarray],
+    prior: Optional[
+        Union[list[Probability], dict[RCCoords, list[Probability]]]
+    ] = None,
+    alpha: Optional[float] = None,
+) -> dict[str, Union[float, int]]:
+    _grid: Grid = (
+        pickle.load(open(grid, "rb")) if isinstance(grid, Path) else grid
+    )
+    if prior:
+        assert alpha is not None
+        if isinstance(prior, list):
+            assign_prior_to_grid(grid=_grid, prior=prior, alpha=alpha)
+        elif isinstance(prior, dict):
+            assign_cell_priors_to_grid(
+                grid=_grid, priors=prior, alpha=alpha, add_missing_cells=True
+            )
+        else:
+            raise ValueError(
+                "`prior` should be either a list of probabilities (positive "
+                "floats) or a dictionary mapping cell indeces to lists of "
+                "probabilities."
+            )
+
+    like = 0.0
+    matches = 0
+    missing = 0
+
+    return_dict = {}
+
+    for track in groundtruth_tracks:
+        t = append_cell_indeces_to_track(track, _grid.origin, _grid.resolution)
+        t_like, t_matches, t_missing = track_likelihood_model(t, _grid)
+        like += t_like
+        matches += t_matches
+        missing += t_missing
+
+    return_dict = {
+        "total_like": like,
+        "matches": matches,
+        "avg_like": like / matches if matches else 0.0,
+        "num_tracks": len(groundtruth_tracks),
+        "missing": missing,
+    }
+
+    return return_dict
+
+
+def evaluate_likelihood_iterations(
+    grid_iterations: Mapping[int, Union[Path, Grid]],
+    groundtruth_tracks: Sequence[np.ndarray],
+    prior: Optional[
+        Union[list[Probability], dict[RCCoords, list[Probability]]]
+    ] = None,
+    alpha: Optional[float] = None,
+) -> dict[int, dict]:
+    results = Parallel(n_jobs=-1)(
+        delayed(evaluate_likelihood)(
+            grid_path, groundtruth_tracks, prior, alpha
+        )
+        for grid_path in tqdm(
+            grid_iterations.values(), desc="Evaluating likelihoods"
+        )
+    )
+
+    # Combining results
+    return {k: results[i] for i, k in enumerate(grid_iterations)}

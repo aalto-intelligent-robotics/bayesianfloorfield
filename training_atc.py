@@ -68,7 +68,7 @@ show_all(dyn_train, occ, occ_overlay=True, dpi=1000)
 
 # %%
 window_size = 64
-scale = 8
+scale = 20
 
 # transform = None
 transform = transforms.Compose(
