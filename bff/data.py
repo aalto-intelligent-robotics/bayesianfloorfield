@@ -3,19 +3,14 @@ from typing import Callable, Optional, Sequence
 
 import numpy as np
 import torch
-from mod.Grid import Grid
-from mod.OccupancyMap import OccupancyMap
 from PIL import Image
 from torch.utils.data import Dataset
 
-from directionalflow.utils import Direction, RowColumnPair, Window
-
-
-def get_directional_prob(bins: dict) -> Sequence[float]:
-    # Encodes dynamics in order: [E, NE, ...]
-    return [
-        bins[d.rad]["probability"] if d.rad in bins else 0.0 for d in Direction
-    ]
+from bff.utils import Direction, RowColumnPair, Window
+from mod.grid import Grid
+from mod.models import DiscreteDirectional
+from mod.occupancy import OccupancyMap
+from mod.utils import RCCoords
 
 
 class _RandomFlipPeopleFlow(torch.nn.Module):
@@ -143,7 +138,7 @@ class PeopleFlowDataset(Dataset):
         dynamics: Grid,
         window_size: int,
         output_channels: int,
-        scale: int = 1,
+        scale: float = 1,
         transform: Optional[Callable] = None,
     ) -> None:
         super().__init__()
@@ -151,13 +146,13 @@ class PeopleFlowDataset(Dataset):
         self.map_origin = occupancy.origin
         self.map_size = self.occupancy.size
         self.dynamics = dynamics
-        self.res_ratio = occupancy.resolution / (dynamics.resolution / 1000)
+        self.res_ratio = occupancy.resolution / dynamics.resolution
         self.output_channels = output_channels
         self.window_size = window_size
         self.indeces = self.get_indeces()
         self.scale = scale
         self.transform = transform
-        self.window = Window(window_size * scale)
+        self.window = Window(int(window_size * scale))
 
     def __len__(self) -> int:
         return len(self.indeces)
@@ -210,7 +205,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         occupancy: OccupancyMap,
         dynamics: Grid,
         window_size: int = 32,
-        scale: int = 1,
+        scale: float = 1,
         transform: Optional[Callable] = None,
     ) -> None:
         super().__init__(
@@ -223,5 +218,6 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         )
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
-        bins = self.dynamics.cells[center].bins
-        return np.array(get_directional_prob(bins), dtype=np.float32)
+        cell = self.dynamics.cells[RCCoords(center[0], center[1])]
+        assert isinstance(cell, DiscreteDirectional)
+        return np.array(cell.bins, dtype=np.float32)

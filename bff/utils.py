@@ -1,19 +1,21 @@
 import logging
 from contextlib import nullcontext
-from enum import IntEnum
 from typing import Optional, Sequence, Set, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as F
-from mod.OccupancyMap import OccupancyMap
+from PIL import Image
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from tqdm import trange
+from torchvision.transforms.functional import resize
+from tqdm import tqdm, trange
 
-from directionalflow.nets import PeopleFlow
+from bff.nets import PeopleFlow
+from mod.occupancy import OccupancyMap
+from mod.utils import Direction
 
 logger = logging.getLogger(__name__)
 
@@ -21,112 +23,78 @@ RowColumnPair = tuple[int, int]
 DataPoint = tuple[torch.Tensor, torch.Tensor]
 Loss = Union[torch.nn.MSELoss, torch.nn.KLDivLoss]
 
-_2PI = np.pi * 2
-
-
-class Direction(IntEnum):
-    E = 0
-    NE = 1
-    N = 2
-    NW = 3
-    W = 4
-    SW = 5
-    S = 6
-    SE = 7
-
-    @property
-    def rad(self) -> float:
-        return self.value * _2PI / 8
-
-    @property
-    def range(self) -> tuple[float, float]:
-        a = self.rad
-        return ((a - np.pi / 8) % _2PI, a + np.pi / 8)
-
-    @property
-    def u(self) -> float:
-        return np.cos(self.rad)
-
-    @property
-    def v(self) -> float:
-        return np.sin(self.rad)
-
-    @property
-    def uv(self) -> tuple[float, float]:
-        return (self.u, self.v)
-
-    def contains(self, rad: float) -> bool:
-        a = rad % _2PI
-        s, e = self.range
-        return (a - s) % _2PI < (e - s) % _2PI
-
-    @classmethod
-    def from_rad(cls, rad: float) -> "Direction":
-        for dir in Direction:
-            if dir.contains(rad):
-                return dir
-        raise ValueError(f"{rad} cannot be represented as Direction")
-
-    @classmethod
-    def from_points(
-        cls, p1: tuple[float, float], p2: tuple[float, float]
-    ) -> "Direction":
-        assert p1 != p2
-        rad = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])
-        return cls.from_rad(rad)
-
 
 def plot_dir(
     occupancy: OccupancyMap,
     dynamics: np.ndarray,
     dir: Direction,
     dpi: int = 300,
-    cmap: str = "hot",
+    cmap: str = "inferno",
 ) -> None:
     binary_map = occupancy.binary_map
     plt.figure(dpi=dpi)
     plt.title(f"Direction: {dir.name}")
-    plt.imshow(dynamics[..., dir.value], vmin=0, vmax=1, cmap=cmap)
+    sz = occupancy.binary_map.size
+    extent = 0, sz[0], 0, sz[1]
+    plt.imshow(
+        dynamics[..., dir.value], vmin=0, vmax=1, cmap=cmap, extent=extent
+    )
     plt.imshow(
         np.ma.masked_where(np.array(binary_map) < 0.5, binary_map),
         vmin=0,
         vmax=1,
         cmap="gray",
         interpolation="none",
+        extent=extent,
     )
 
 
 def plot_quivers(
     occupancy: np.ndarray,
     dynamics: np.ndarray,
+    scale: int = 1,
     window_size: Optional[int] = None,
     center: Optional[RowColumnPair] = None,
     normalize: bool = True,
     dpi: int = 300,
 ) -> None:
-    sz = dynamics.shape
-    assert occupancy.shape == sz[0:2]
+    sz_occ = occupancy.shape
+    sz_dyn = dynamics.shape
+    assert sz_occ[0] // scale == sz_dyn[0] and sz_occ[1] // scale == sz_dyn[1]
     assert (window_size is None and center is None) or (
         window_size is not None and center is not None
     )
-    assert sz[2] == 8
+    assert sz_dyn[2] == 8
 
     if window_size is not None and center is not None:
-        w = Window(window_size)
-        left, top, right, bottom = w.corners(
-            center, bounds=(0, sz[0], 0, sz[1])
+        w_occ = Window(window_size)
+        left, top, right, bottom = w_occ.corners(
+            center, bounds=(0, sz_occ[0], 0, sz_occ[1])
+        )
+        w_dyn = Window(window_size // scale)
+        center_dyn = (center[0] // scale, center[1] // scale)
+        left_d, top_d, right_d, bottom_d = w_dyn.corners(
+            center_dyn, bounds=(0, sz_dyn[0], 0, sz_dyn[1])
         )
         occ = occupancy[top:bottom, left:right]
-        dyn = dynamics[top:bottom, left:right, ...]
+        dyn = dynamics[top_d:bottom_d, left_d:right_d, ...]
+        YX = np.mgrid[0 : window_size // scale, 0 : window_size // scale]
+        extent = (
+            -0.5,
+            window_size // scale - 0.5,
+            -0.5,
+            window_size // scale - 0.5,
+        )
     else:
         occ = occupancy
         dyn = dynamics
+        YX = np.mgrid[0 : dyn.shape[0], 0 : dyn.shape[1]]
+        extent = (-0.5, dyn.shape[0] - 0.5, -0.5, dyn.shape[1] - 0.5)
     dyn = dyn.reshape((-1, 8))
     if normalize:
         dyn = scale_quivers(dyn)
 
     plt.figure(dpi=dpi)
-    YX = np.mgrid[0 : occ.shape[0], 0 : occ.shape[1]]
     Y: list[list[int]] = [[y] * 8 for y in YX[0].flatten()]
     X: list[list[int]] = [[x] * 8 for x in YX[1].flatten()]
     u = [d.u for d in Direction]
@@ -140,6 +108,7 @@ def plot_quivers(
         vmax=1,
         cmap="gray",
         interpolation="none",
+        extent=extent,
     )
 
 
@@ -163,54 +132,83 @@ def random_input(
 def estimate_dynamics(
     net: PeopleFlow,
     occupancy: Union[OccupancyMap, np.ndarray],
+    scale: int = 1,
+    net_scale: int = 1,
+    # TODO: crop: Optional[Sequence[int]] = None,  # (left, top, right, bottom)
     batch_size: int = 4,
     device: Optional[torch.device] = None,
 ) -> np.ndarray:
-    window = Window(net.window_size)
+    window = Window(net.window_size * net_scale)
     if not device:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
     net.eval()
 
     if isinstance(occupancy, OccupancyMap):
-        bin_map = np.array(occupancy.binary_map)
+        if scale > 1:
+            occupancy_size = occupancy.binary_map.size
+            padded_width = (-occupancy_size[0] % scale) + occupancy_size[0]
+            padded_height = (-occupancy_size[1] % scale) + occupancy_size[1]
+            bin_image = Image.new(
+                occupancy.binary_map.mode, (padded_width, padded_height)
+            )
+            bin_image.paste(occupancy.binary_map, (0, 0))
+            bin_map = np.array(
+                bin_image.resize(
+                    (bin_image.size[0] // scale, bin_image.size[1] // scale),
+                    Image.ANTIALIAS,
+                )
+            )
+        else:
+            bin_map = np.array(occupancy.binary_map)
     else:
+        if scale > 1:
+            logger.warning(
+                "Parameter scale is ignored when occupancy is a numpy array."
+            )
         bin_map = occupancy
     h, w = bin_map.shape
     channels = 1
     padded_map = np.pad(bin_map, window.pad_amount)
-    input = torch.from_numpy(np.expand_dims(padded_map, axis=(0, 1)))
+    input = torch.from_numpy(padded_map)
     del bin_map, padded_map
 
     kh, kw = window.size, window.size  # kernel size
     dh, dw = 1, 1  # stride
-    patches = input.unfold(2, kh, dh).unfold(3, kw, dw)
-    patches = patches.contiguous().view(-1, channels, kh, kw)
-    del input
-
-    num_pixels = patches.shape[0]
-    empty_patch = torch.zeros(
-        (1, 1, net.window_size, net.window_size), dtype=torch.uint8
+    patches = input.unfold(0, kh, dh).unfold(1, kw, dw)
+    ph, pw = patches.shape[0:2]
+    patches_scaled = torch.empty(
+        (ph * pw, channels, net.window_size, net.window_size),
+        dtype=torch.float,
     )
-    empty_i = (patches == empty_patch).all(dim=3).all(dim=2).squeeze()
+    for row_i, patch in enumerate(tqdm(patches)):
+        patches_scaled[row_i * pw : (row_i + 1) * pw, 0] = (
+            resize(
+                patch, size=(net.window_size, net.window_size), antialias=True
+            )
+            / 255.0
+        )
+    del input, patches
+
+    num_pixels = patches_scaled.shape[0]
+    empty_patch = torch.zeros(
+        (1, 1, net.window_size, net.window_size), dtype=torch.float
+    )
+    empty_i = (patches_scaled == empty_patch).all(dim=3).all(dim=2).squeeze()
     nonempty_i = torch.logical_not(empty_i)
-    nonempty_patches = patches[nonempty_i]
-    del patches
+    nonempty_patches = patches_scaled[nonempty_i]
+    del patches_scaled
 
     with torch.no_grad():
         nonempty_centers = torch.empty(
             (nonempty_patches.shape[0], net.out_channels)
         )
-        empty_center = net(empty_patch.to(device, dtype=torch.float))[
-            :, :, window.center[0], window.center[1]
-        ]
+        empty_center: torch.Tensor = net(empty_patch.to(device=device))
         for i in trange(0, nonempty_patches.shape[0], batch_size):
             end = min(i + batch_size, nonempty_patches.shape[0])
-            batch = nonempty_patches[i:end, ...].to(device, dtype=torch.float)
-            output = net(batch)
-            nonempty_centers[i:end] = output[
-                :, :, window.center[0], window.center[1]
-            ]
+            nonempty_centers[i:end] = net(
+                nonempty_patches[i:end, ...].to(device=device)
+            )
         del nonempty_patches, empty_patch
 
         centers = torch.empty((num_pixels, net.out_channels))
@@ -243,7 +241,6 @@ class Trainer:
         self.valloader = valloader
         self.writer = writer
         self.train_epochs = 0
-        self.cr, self.cc = Window(net.window_size).center
 
     def _step(
         self,
@@ -260,7 +257,7 @@ class Trainer:
             self.optimizer.zero_grad()
 
         # forward
-        outputs = self.net(inputs)[..., self.cr, self.cc]
+        outputs = self.net(inputs)
         if isinstance(self.criterion, torch.nn.KLDivLoss):
             outputs = F.log_softmax(outputs, dim=1)
         loss = self.criterion(outputs, groundtruth)
@@ -279,7 +276,7 @@ class Trainer:
         else:
             assert self.valloader is not None
             dataloader = self.valloader
-            cm = torch.no_grad()
+            cm = torch.no_grad()  # type: ignore
 
         total_loss = 0.0
         for i, data in enumerate(dataloader):

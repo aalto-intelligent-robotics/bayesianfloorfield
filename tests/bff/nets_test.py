@@ -1,7 +1,8 @@
-import mod.Models as mod
 import pytest
 import torch
-from directionalflow.nets import DiscreteDirectional
+
+import mod.models as mod
+from bff.nets import DiscreteDirectional
 
 
 def test_discretedirectional_model() -> None:
@@ -15,5 +16,6 @@ def test_network_ouput() -> None:
     net = DiscreteDirectional(window_size=32)
     with torch.no_grad():
         output = net(input)
-    assert output.shape == (2, 8, 32, 32)
-    assert torch.sum(output[0, :, 16, 16]) == pytest.approx(1)
+    assert output.shape == (2, 8)
+    assert torch.sum(output[0, :]) == pytest.approx(1)
+    assert torch.sum(output[1, :]) == pytest.approx(1)
