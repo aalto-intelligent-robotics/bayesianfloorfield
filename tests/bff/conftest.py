@@ -72,23 +72,25 @@ def grid() -> Grid:
 
 
 @pytest.fixture
-def tracks() -> list[np.ndarray]:
-    return [
-        np.array(
-            [
-                [0.4, 2.5, 0],  # (0, 0) E -> P=0.5
-                [1.5, 2.8, np.pi / 4],  # (0, 1) NE -> P=1.0
-                [1.7, 3.3, np.pi],  # (1, 1) W -> missing (P=0.125)
-            ]
-        ).T,
-        np.array(
-            [
-                [0.4, 2.5, 0],
-                [1.5, 2.8, np.pi / 4],
-                [1.7, 3.3, np.pi],
-            ]
-        ).T,
-    ]
+def tracks() -> np.ndarray:
+    return np.array(
+        [
+            np.array(
+                [
+                    [0.4, 2.5, 0],  # (0, 0) E -> P=0.5
+                    [1.5, 2.8, np.pi / 4],  # (0, 1) NE -> P=1.0
+                    [1.7, 3.3, np.pi],  # (1, 1) W -> missing (P=0.125)
+                ]
+            ).T,
+            np.array(
+                [
+                    [0.4, 2.5, 0],
+                    [1.5, 2.8, np.pi / 4],
+                    [1.7, 3.3, np.pi],
+                ]
+            ).T,
+        ]
+    )
 
 
 @pytest.fixture

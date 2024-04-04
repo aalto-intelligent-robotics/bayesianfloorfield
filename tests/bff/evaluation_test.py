@@ -188,7 +188,7 @@ def test_evaluate_likelihood_cellprior_missing_alpha(
 
 
 def test_evaluate_likelihood_iterations(
-    grid: Grid, tracks: list[np.ndarray]
+    grid: Grid, tracks: np.ndarray
 ) -> None:
     grid_iterations = {0: grid, 10: grid, 20: grid}
     results = evaluate_likelihood_iterations(grid_iterations, tracks)
