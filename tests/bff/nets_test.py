@@ -2,7 +2,7 @@ import pytest
 import torch
 
 import mod.models as mod
-from directionalflow.nets import DiscreteDirectional
+from bff.nets import DiscreteDirectional
 
 
 def test_discretedirectional_model() -> None:

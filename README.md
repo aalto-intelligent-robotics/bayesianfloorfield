@@ -6,7 +6,7 @@
 [![python](https://img.shields.io/badge/python-3.9.1-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![pytorch](https://img.shields.io/badge/pytorch-1.9.1-EE4C2C.svg?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/get-started/previous-versions/)
 [![cuda](https://img.shields.io/badge/cuda-11.8-76B900.svg?style=for-the-badge&logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-11-8-0-download-archive)
-[![License](https://img.shields.io/github/license/aalto-intelligent-robotics/directionalflow?style=for-the-badge&logo=googledocs&logoColor=white)](./LICENSE)
+[![License](https://img.shields.io/github/license/aalto-intelligent-robotics/bayesianfloorfield?style=for-the-badge&logo=googledocs&logoColor=white)](./LICENSE)
 
 **Authors:** [Francesco
 Verdoja](https://research.aalto.fi/en/persons/francesco-verdoja) (<francesco.verdoja@aalto.fi>), [Tomasz Piotr

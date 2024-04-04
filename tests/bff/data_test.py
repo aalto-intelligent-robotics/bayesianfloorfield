@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import torchvision.transforms as transforms
 
-from directionalflow.data import (
+from bff.data import (
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,
     RandomRotationPeopleFlow,

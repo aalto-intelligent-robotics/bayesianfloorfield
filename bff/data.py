@@ -6,7 +6,7 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from directionalflow.utils import Direction, RowColumnPair, Window
+from bff.utils import Direction, RowColumnPair, Window
 from mod.grid import Grid
 from mod.models import DiscreteDirectional
 from mod.occupancy import OccupancyMap

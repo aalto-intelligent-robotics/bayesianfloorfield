@@ -8,9 +8,9 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 import mod.models as mod
-from directionalflow.data import DiscreteDirectionalDataset
-from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import Trainer
+from bff.data import DiscreteDirectionalDataset
+from bff.nets import DiscreteDirectional
+from bff.utils import Trainer
 from mod.grid import Grid
 from mod.occupancy import OccupancyMap
 from mod.utils import RCCoords, XYCoords

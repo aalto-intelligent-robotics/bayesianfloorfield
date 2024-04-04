@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from torch import device, float32
 
-from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import (
+from bff.nets import DiscreteDirectional
+from bff.utils import (
     Trainer,
     Window,
     estimate_dynamics,

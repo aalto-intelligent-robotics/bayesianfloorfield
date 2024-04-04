@@ -13,7 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from directionalflow.evaluation import (
+from bff.evaluation import (
     append_cell_indeces_to_track,
     evaluate_likelihood_iterations,
     extract_tracks_from_grid,

@@ -11,8 +11,8 @@ from PIL import Image
 from tqdm import tqdm
 
 import mod.models as mod
-from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import Direction, OccupancyMap, Window
+from bff.nets import DiscreteDirectional
+from bff.utils import Direction, OccupancyMap, Window
 from mod.grid import (
     Grid,
     PositiveFloat,

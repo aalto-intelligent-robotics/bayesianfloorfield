@@ -14,14 +14,14 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from directionalflow.data import (
+from bff.data import (
     DiscreteDirectionalDataset,
     RandomHorizontalFlipPeopleFlow,
     RandomRotationPeopleFlow,
     RandomVerticalFlipPeopleFlow,
 )
-from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import Trainer
+from bff.nets import DiscreteDirectional
+from bff.utils import Trainer
 from mod import grid, models
 from mod.occupancy import OccupancyMap
 from mod.visualisation import show_all

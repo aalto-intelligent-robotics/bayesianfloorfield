@@ -13,7 +13,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms.functional import resize
 from tqdm import tqdm, trange
 
-from directionalflow.nets import PeopleFlow
+from bff.nets import PeopleFlow
 from mod.occupancy import OccupancyMap
 from mod.utils import Direction
 

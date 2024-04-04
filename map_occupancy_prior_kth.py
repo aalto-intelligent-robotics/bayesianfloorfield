@@ -8,8 +8,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import estimate_dynamics, plot_dir
+from bff.nets import DiscreteDirectional
+from bff.utils import estimate_dynamics, plot_dir
 from mod.occupancy import OccupancyMap
 from mod.utils import Direction
 

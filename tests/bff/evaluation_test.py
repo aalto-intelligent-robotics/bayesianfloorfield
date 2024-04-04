@@ -3,7 +3,7 @@ from typing import Literal
 import numpy as np
 import pytest
 
-from directionalflow.evaluation import (
+from bff.evaluation import (
     append_cell_indeces_to_track,
     evaluate_likelihood,
     evaluate_likelihood_iterations,
@@ -12,7 +12,7 @@ from directionalflow.evaluation import (
     track_likelihood_net,
     track_likelihood_net_2,
 )
-from directionalflow.nets import DiscreteDirectional
+from bff.nets import DiscreteDirectional
 from mod.grid import Grid
 from mod.occupancy import OccupancyMap
 from mod.utils import RCCoords
