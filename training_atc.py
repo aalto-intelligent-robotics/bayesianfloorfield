@@ -8,7 +8,6 @@ import pickle
 import sys
 from pathlib import Path
 
-import numpy as np
 import torch
 import torch.optim as optim
 import torchvision.transforms as transforms
@@ -22,14 +21,7 @@ from directionalflow.data import (
     RandomVerticalFlipPeopleFlow,
 )
 from directionalflow.nets import DiscreteDirectional
-from directionalflow.utils import (
-    Direction,
-    Trainer,
-    estimate_dynamics,
-    plot_dir,
-    plot_quivers,
-    random_input,
-)
+from directionalflow.utils import Trainer
 from mod import grid, models
 from mod.occupancy import OccupancyMap
 from mod.visualisation import show_all
@@ -60,15 +52,21 @@ GRID_TEST_DATA = (
     / "discrete_directional_20121118_8533469.p"
 )
 
-occ = OccupancyMap.from_yaml(MAP_METADATA)
-dyn_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
-dyn_test: grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
+NET_EPOCHS = 120
+NET_WINDOW_SIZE = 64
+NET_SCALE_FACTOR = 20
+NET_BATCH_SIZE = 32
 
-show_all(dyn_train, occ, occ_overlay=True, dpi=1000)
+TRAINER_PREVIOUS_EPOCHS = 0  # to continue previous training
 
-# %%
-window_size = 64
-scale = 20
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+PLOT_DPI = 800
+
+occupancy = OccupancyMap.from_yaml(MAP_METADATA)
+grid_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
+grid_test: grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
+
+show_all(grid_train, occupancy, occ_overlay=True, dpi=PLOT_DPI)
 
 # transform = None
 transform = transforms.Compose(
@@ -79,34 +77,36 @@ transform = transforms.Compose(
     ]
 )
 
-id_string = f"_w{window_size}_s{scale}{'_t' if transform is not None else ''}"
+net_id_string = (
+    f"_w{NET_WINDOW_SIZE}_s{NET_SCALE_FACTOR}"
+    f"{'_t' if transform is not None else ''}"
+)
 
 trainset = DiscreteDirectionalDataset(
-    occupancy=occ,
-    dynamics=dyn_train,
-    window_size=window_size,
-    scale=scale,
+    occupancy=occupancy,
+    dynamics=grid_train,
+    window_size=NET_WINDOW_SIZE,
+    scale=NET_SCALE_FACTOR,
     transform=transform,
 )
 valset = DiscreteDirectionalDataset(
-    occupancy=occ, dynamics=dyn_test, window_size=window_size, scale=scale
+    occupancy=occupancy,
+    dynamics=grid_test,
+    window_size=NET_WINDOW_SIZE,
+    scale=NET_SCALE_FACTOR,
 )
 
-net = DiscreteDirectional(window_size)
+net = DiscreteDirectional(NET_WINDOW_SIZE)
 
 # %% Training context
 
-batch_size = 32
-
 trainloader = DataLoader(
-    trainset, batch_size=batch_size, shuffle=True, num_workers=2
+    trainset, batch_size=NET_BATCH_SIZE, shuffle=True, num_workers=2
 )
 
 valloader = DataLoader(
-    valset, batch_size=batch_size, shuffle=False, num_workers=2
+    valset, batch_size=NET_BATCH_SIZE, shuffle=False, num_workers=2
 )
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 criterion = torch.nn.MSELoss()
 # criterion = torch.nn.KLDivLoss(reduction="batchmean")
@@ -114,7 +114,7 @@ criterion = torch.nn.MSELoss()
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 
 # Writer will output to ./runs/ directory by default
-writer = SummaryWriter(comment=id_string)
+writer = SummaryWriter(comment=net_id_string)
 
 trainer = Trainer(
     net=net,
@@ -122,83 +122,21 @@ trainer = Trainer(
     valloader=valloader,
     optimizer=optimizer,
     criterion=criterion,
-    device=device,
+    device=DEVICE,
     writer=writer,
 )
 
+# %% Load network weights if continuing previous training
+
+if TRAINER_PREVIOUS_EPOCHS:
+    path = f"models/people_net{net_id_string}_{TRAINER_PREVIOUS_EPOCHS}.pth"
+    trainer.load(path)
+
 # %% Train
 
-epochs = 120
-trainer.train(epochs=epochs)
+trainer.train(epochs=NET_EPOCHS)
 
 # %% Save network weights
 
-path = f"models/people_net{id_string}_{trainer.train_epochs}.pth"
+path = f"models/people_net{net_id_string}_{trainer.train_epochs}.pth"
 trainer.save(path)
-
-# %% Load network weights
-
-# epochs = trainer.train_epochs
-path = f"models/people_net{id_string}_{epochs}.pth"
-trainer.load(path)
-
-# %% Visualize a groundtruth
-
-image, gt = trainset.get_by_center((40, 20))
-outputs = np.zeros((window_size, window_size, 8))
-outputs[window_size // 2, window_size // 2, :] = gt
-
-plot_quivers(image[0] >= 1 / scale, outputs, dpi=1000)
-
-# %% Visualize a sample output
-
-image, _ = valset.get_by_center((40, 20))
-
-outputs = estimate_dynamics(net, image[0], device=device, batch_size=32)
-
-plot_quivers(image[0] >= 1 / scale, outputs, dpi=1000)
-
-# %% Visualize output on random input
-
-inputs = (
-    random_input(size=32, p_occupied=0.1, device=device)
-    .cpu()
-    .numpy()[0, 0, ...]
-)
-outputs = estimate_dynamics(net, inputs, device=device, batch_size=32)
-
-plot_quivers(inputs, outputs, dpi=1000)
-
-# %% Build the full dynamic map
-
-dyn_map = estimate_dynamics(
-    net, occ, device=device, batch_size=100, net_scale=scale
-)
-
-# %% Save full dynamic map
-np.save(f"maps/map{id_string}.npy", dyn_map)
-
-# %% Load a saved full dynamic map
-dyn_map = np.load(f"maps/map{id_string}.npy")
-
-# %% Visualize
-
-plot_dir(occ, dyn_map, Direction.NW)
-plot_dir(occ, dyn_map, Direction.NE)
-plot_dir(occ, dyn_map, Direction.SW)
-plot_dir(occ, dyn_map, Direction.SE)
-
-# %% Visualize quiver
-
-center = (400, 730)
-w = 64
-plot_quivers(
-    np.array(occ.binary_map) >= 1 / scale,
-    dyn_map,
-    scale=scale,
-    dpi=1000,
-    center=center,
-    window_size=w * 4,
-)
-
-# %%
