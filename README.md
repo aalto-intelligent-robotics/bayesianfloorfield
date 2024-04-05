@@ -117,10 +117,12 @@ filenames for these maps follow the structure
 `map_{dataset}_w{window_size}_s{scale_factor}_t_{number_of_training_epochs}.npy`
 
 For both `models` and `maps`, the `scale_factor` is indicated as multiplier
-from the occupancy map scale of 0.05m/pixel, so `s8 => 8x0.05 = 0.4m/cell`
-corresponds to the prior $\bar{\textbf{d}}_{0.4}^W$ from the paper, `s16 =>
-16x0.05 = 0.8m/cell` to $\bar{\textbf{d}}_{0.8}^W$ and `s20 => 20x0.05 =
-1.0m/cell` to $\bar{\textbf{d}}_{1.0}^W$.
+from the occupancy map scale of 0.05m/pixel, so:
+
+* `s8 => 8x0.05 = 0.4m/cell` corresponds to the prior
+  $\bar{\textbf{d}}_{0.4}^W$ from the paper,
+* `s16 => 16x0.05 = 0.8m/cell` to $\bar{\textbf{d}}_{0.8}^W$, and
+* `s20 => 20x0.05 = 1.0m/cell` to $\bar{\textbf{d}}_{1.0}^W$.
 
 ### Replicating the experiments
 
