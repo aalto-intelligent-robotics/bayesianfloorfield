@@ -237,7 +237,7 @@ def evaluate_likelihood(
 
 def evaluate_likelihood_iterations(
     grid_iterations: Mapping[int, Union[Path, Grid]],
-    groundtruth_tracks: Sequence[np.ndarray],
+    groundtruth_tracks: np.ndarray,
     prior: Optional[
         Union[list[Probability], dict[RCCoords, list[Probability]]]
     ] = None,
