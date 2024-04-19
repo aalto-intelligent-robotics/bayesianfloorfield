@@ -10,9 +10,20 @@ DynModel = Type[mod.DiscreteDirectional]
 
 
 class PeopleFlow(octo.models.Tiramisu):
+    """The base class for a network learning people flow from occupancy"""
+
     def __init__(
         self, model: DynModel, window_size: int, out_channels: int
     ) -> None:
+        """Init `PeopleFlow` class
+
+        Args:
+            model (DynModel): The dynamic model this network is learning from.
+            window_size (int): The size of the window over the occupancy used
+            as network input.
+            out_channels (int): The number of output channels, matching the
+            number of discrete directions in the dynamic model.
+        """
         self.model = model
         self.window_size = window_size
         self.window_center = window_size // 2
@@ -55,12 +66,21 @@ class PeopleFlow(octo.models.Tiramisu):
         return y_pred[..., self.window_center, self.window_center]
 
     def load_weights(self, checkpoint_path: str) -> None:
+        """Loads pre-computed weights from `checkpoint_path`"""
         checkpoint = load(checkpoint_path)["model_state_dict"]
         self.load_state_dict(checkpoint)
 
 
 class DiscreteDirectional(PeopleFlow):
+    """A network learning an 8-directional Floor Field from occupancy"""
+
     def __init__(self, window_size: int) -> None:
+        """Init `DiscreteDirectional` class
+
+        Args:
+            window_size (int): The size of the window over the occupancy used
+            as network input.
+        """
         super().__init__(
             model=mod.DiscreteDirectional,
             window_size=window_size,

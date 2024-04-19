@@ -98,9 +98,20 @@ class RandomVerticalFlipPeopleFlow(_RandomFlipPeopleFlow):
 
 
 class RandomRotationPeopleFlow(torch.nn.Module):
+    """Performs a random rotation on a people flow data sample"""
+
     def __init__(
         self, p: float = 0.5, angles_p: Sequence[float] = [1 / 3, 1 / 3, 1 / 3]
     ):
+        """Init `RandomRotationPeopleFlow` class
+
+        Args:
+            p (float, optional): Probability of applying a rotation. Defaults
+            to 0.5.
+            angles_p (Sequence[float], optional): A sequence of three
+            probabilities associated with the number of 90° rotations. The sum
+            of the elements should equal to 1. Defaults to [1/3, 1/3, 1/3].
+        """
         assert 0 <= p <= 1
         assert len(angles_p) == 3 and np.sum(angles_p) == 1
         super().__init__()
@@ -111,6 +122,7 @@ class RandomRotationPeopleFlow(torch.nn.Module):
     def forward(
         self, data: tuple[np.ndarray, np.ndarray]
     ) -> tuple[np.ndarray, np.ndarray]:
+        """Return the (occupancy, dynamics) tuple `data` randomly rotated"""
         if torch.rand(1) < self.p:
             num_rotations = np.random.choice([1, 2, 3], p=self.angles_p)
             occ, dyn = data
@@ -120,6 +132,7 @@ class RandomRotationPeopleFlow(torch.nn.Module):
         return data
 
     def _rotate_dynamics(self, dynamics: np.ndarray, k: int = 1) -> np.ndarray:
+        """Return `dynamics` with Directions rotated `k` times"""
         sz = dynamics.shape
         if sz == (8,):
             dynamics = np.take(dynamics, range(-2 * k, 8 - 2 * k), mode="wrap")
@@ -132,6 +145,8 @@ class RandomRotationPeopleFlow(torch.nn.Module):
 
 
 class PeopleFlowDataset(Dataset):
+    """A base Dataset to be used for people flow learning"""
+
     def __init__(
         self,
         occupancy: OccupancyMap,
@@ -141,6 +156,22 @@ class PeopleFlowDataset(Dataset):
         scale: float = 1,
         transform: Optional[Callable] = None,
     ) -> None:
+        """Init `PeopleFlowDataset` class
+
+        Args:
+            occupancy (OccupancyMap): The occupancy map of the environment.
+            dynamics (Grid): The MoD representing the groundtruth people flow.
+            window_size (int): The size of the window over the occupancy to use
+            to make input for the network.
+            output_channels (int): The number of output channels, equal to the
+            number of bins in the `dynamics` MoD.
+            scale (float, optional): The scale factor. If > 1, a window of size
+            `window_size` x `scale` will actually be cropped and then
+            downscaled to `window_size`. Defaults to 1.
+            transform (Callable, optional): The function or transform to apply
+            to an input occupancy window before returning a transformed
+            version. Defaults to None.
+        """
         super().__init__()
         self.occupancy = occupancy.binary_map
         self.map_origin = occupancy.origin
@@ -165,6 +196,18 @@ class PeopleFlowDataset(Dataset):
         self,
         center: RowColumnPair,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """Retrieves data by the center coordinates.
+
+        Args:
+            center (RowColumnPair): The center coordinates for data retrieval.
+
+        Returns:
+            tuple: The data as `(occupancy_window, groundtruth_dynamics)`
+            tuple. `occupancy_window` is a numpy array of size
+            `self.window_size` x `self.window_size` centered on `center`, while
+            `groundtruth_dynamics` is the groundtruth people flow for `center`
+            as a numpy array of `output_channels` probabilities.
+        """
         center_occupancy = (
             self.map_size[1]
             - int((center[0] + self.map_origin[1]) / self.res_ratio),
@@ -192,14 +235,20 @@ class PeopleFlowDataset(Dataset):
         return sample
 
     def get_indeces(self) -> Sequence[RowColumnPair]:
+        """Returns the list of indices for all data in the dataset"""
         return list(self.dynamics.cells.keys())
 
     @abstractmethod
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
+        """Returns the dynamics for the cell at index `center`."""
         raise NotImplementedError
 
 
 class DiscreteDirectionalDataset(PeopleFlowDataset):
+    """A Dataset to be used for learning people flow from 8-directional Floor
+    Field groundtruth
+    """
+
     def __init__(
         self,
         occupancy: OccupancyMap,
@@ -208,6 +257,20 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         scale: float = 1,
         transform: Optional[Callable] = None,
     ) -> None:
+        """Init `DiscreteDirectionalDataset` class
+
+        Args:
+            occupancy (OccupancyMap): The occupancy map of the environment.
+            dynamics (Grid): The MoD representing the groundtruth people flow.
+            window_size (int): The size of the window over the occupancy to use
+            to make input for the network.
+            scale (float, optional): The scale factor. If > 1, a window of size
+            `window_size` x `scale` will actually be cropped and then
+            downscaled to `window_size`. Defaults to 1.
+            transform (Callable, optional): The function or transform to apply
+            to an input occupancy window before returning a transformed
+            version. Defaults to None.
+        """
         super().__init__(
             occupancy,
             dynamics,
@@ -218,6 +281,7 @@ class DiscreteDirectionalDataset(PeopleFlowDataset):
         )
 
     def _dynamics(self, center: RowColumnPair) -> np.ndarray:
+        """Returns the dynamics for the cell at index `center`."""
         cell = self.dynamics.cells[RCCoords(center[0], center[1])]
         assert isinstance(cell, DiscreteDirectional)
         return np.array(cell.bins, dtype=np.float32)

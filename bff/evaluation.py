@@ -24,16 +24,24 @@ from mod.utils import RC_from_XY, RCCoords, XYCoords
 
 
 def extract_tracks_from_matlab(track_path: Path) -> np.ndarray:
-    """returns [tracks[x, y]]"""
+    """Returns the tracks extracted from the KTH dataset as `[tracks[x, y]]`"""
     return sio.loadmat(track_path, squeeze_me=True)["dataTrajectoryNoIDCell"]
 
 
 def extract_tracks_from_grid(
     grid: Grid, with_grountruth: bool = False
 ) -> np.ndarray:
-    """
-    returns [tracks[x, y, motion_angle]] if with_groundtruth = False (default),
-    otherwise [tracks[x, y, motion_angle, bin, cell_row, cell_col]]
+    """Extract the trajectory data from an MoD.
+
+    Args:
+        grid (Grid): The MoD to extract trajectory data from.
+        with_groundtruth (bool): Whether to append the groundtruth bin, cell
+        row, and cell columns to the trajectory data. Defaults to False.
+
+    Returns:
+        np.ndarray: `[tracks[x, y, motion_angle]]` if
+        `with_groundtruth = False`, otherwise
+        `[tracks[x, y, motion_angle, bin, cell_row, cell_col]]`
     """
 
     def extract_data(cell: Cell) -> pd.DataFrame:
@@ -84,6 +92,16 @@ def extract_tracks_from_grid(
 def pixels_from_track(
     track: np.ndarray, occupancy: OccupancyMap
 ) -> np.ndarray:
+    """Converts track data to pixel coordinates in an occupancy map.
+
+    Args:
+        track (np.ndarray): The track data to be converted.
+        occupancy (OccupancyMap): The occupancy map used to convert track data.
+
+    Returns:
+        np.ndarray: The pixel coordinates corresponding to the input track data
+        on the given occupancy map.
+    """
     r = occupancy.resolution
     o = occupancy.origin
     s = occupancy.map.size
@@ -97,6 +115,20 @@ def pixels_from_track(
 def append_cell_indeces_to_track(
     track: np.ndarray, grid_origin: XYCoords, grid_resolution: PositiveFloat
 ) -> np.ndarray:
+    """Append cell indices to a track. The cell indices are computed based on
+    the grid origin and grid resolution.
+
+    Args:
+        track (np.ndarray): The track data to which the cell indices are to be
+        appended.
+        grid_origin (XYCoords): The origin coordinates of the grid.
+        grid_resolution (PositiveFloat): The resolution of the grid. It
+        represents the length of one side of a cell in the grid in meters.
+
+    Returns:
+        np.ndarray: The track data with appended cell indices as
+        `[tracks[x, y, motion_angle, cell_row, cell_col]]`.
+    """
     cell_indeces = np.empty((2, track.shape[1]))
     for i, point in enumerate(track.T):
         cell = RC_from_XY(
@@ -107,7 +139,7 @@ def append_cell_indeces_to_track(
     return np.concatenate([track, cell_indeces])
 
 
-def track_likelihood_net(
+def track_likelihood_from_net(
     pixels: np.ndarray,
     occupancy: OccupancyMap,
     window_size: int,
@@ -115,6 +147,25 @@ def track_likelihood_net(
     net: DiscreteDirectional,
     device: torch.device = torch.device("cpu"),
 ) -> tuple[float, int]:
+    """Computes the likelihood of a track according to a model given by a
+    DiscreteDirectional net.
+
+    Args:
+        pixels (np.ndarray): The pixel coordinates to of the track.
+        occupancy (OccupancyMap): The occupancy map used to produce the network
+        input.
+        window_size (int): The size of the window to use as network input.
+        scale (int): The scale factor of the network.
+        net (DiscreteDirectional): The network to compute likelihood from.
+        device (torch.device, optional): The device to perform computations on.
+        Defaults to CPU.
+
+    Returns:
+        tuple(float, int): A tuple `(likelihood, num_matches)`, containing the
+        sum of likelihoods for each pixel in the track and the total number of
+        matches. Average likelihood can be obtained as
+        `likelihood / num_matches`.
+    """
     window = Window(window_size * scale)
     net.to(device)
     net.eval()
@@ -143,9 +194,22 @@ def track_likelihood_net(
     return (like, matches)
 
 
-def track_likelihood_net_2(
+def track_likelihood_from_dynamic_map(
     pixels: np.ndarray, dynamics: np.ndarray
 ) -> tuple[float, int]:
+    """Computes the likelihood of a track according to a model given by a
+    Map of Dynamics returned by a DiscreteDirectionalNetwork.
+
+    Args:
+        pixels (np.ndarray): The pixel coordinates to of the track.
+        dynamics (np.ndarray): The MoD to compute likelihood from.
+
+    Returns:
+        tuple(float, int): A tuple `(likelihood, num_matches)`, containing the
+        sum of likelihoods for each pixel in the track and the total number of
+        matches. Average likelihood can be obtained as
+        `likelihood / num_matches`.
+    """
     like = 0
     matches = 0
     for i in range(pixels.shape[1]):
@@ -157,11 +221,29 @@ def track_likelihood_net_2(
     return (like, matches)
 
 
-def track_likelihood_model(
+def track_likelihood_from_grid(
     track: np.ndarray,
     grid: Grid,
     missing_cells: Literal["skip", "uniform", "zero"] = "uniform",
 ) -> tuple[float, int, int]:
+    """Computes the likelihood of a track according to a model given by a
+    Map of Dynamics expressed as a Grid. Considers missing cells in the grid
+    according to the provided strategy.
+
+    Args:
+        track (np.ndarray): The track to compute likelihood for.
+        grid (Grid): The grid containing the cell information.
+        missing_cells (Literal["skip", "uniform", "zero"], optional): Strategy
+        to handle the missing cells, it can be "skip" to ignore missing cells
+        completely in the computation, "uniform" to assume uniform probability
+        in the missing cells, or "zero" to assume zero probability in the
+        missing cells. Defaults to "uniform".
+
+    Returns:
+        tuple(float, int, int): A tuple `(likelihood, num_matches, missing)`,
+        containing the sum of likelihoods for each pixel in the track, the
+        total number of matches, and the number of missing cells in the grid.
+    """
     assert missing_cells in ["skip", "uniform", "zero"]
     like = 0.0
     missing = 0
@@ -193,6 +275,27 @@ def evaluate_likelihood(
     ] = None,
     alpha: Optional[float] = None,
 ) -> dict[str, Union[float, int]]:
+    """Evaluates the likelihood of groundtruth tracks based on a grid. The grid
+    can have a prior assigned.
+
+    Args:
+        grid (Union[Path, Grid]): The grid or the path to the grid file.
+        groundtruth_tracks (Sequence[np.ndarray]): The sequences of groundtruth
+        tracks.
+        prior (Union[list[Probability], dict[RCCoords, list[Probability]]],
+        optional): The prior to be used, it can be either a list of
+        probabilities representing the prior to use for all cells, or a
+        dictionary mapping cell indices to their priors. If not provided, no
+        prior is used.
+        alpha (float, optional): The hyperconcentration parameter representing
+        the trust in the prior. If the prior is provided, this argument must
+        also be provided.
+
+    Returns:
+        dict: A dictionary with the total likelihood, the number of matches,
+        the average likelihood, the number of tracks and the number of missing
+        points.
+    """
     _grid: Grid = (
         pickle.load(open(grid, "rb")) if isinstance(grid, Path) else grid
     )
@@ -219,7 +322,7 @@ def evaluate_likelihood(
 
     for track in groundtruth_tracks:
         t = append_cell_indeces_to_track(track, _grid.origin, _grid.resolution)
-        t_like, t_matches, t_missing = track_likelihood_model(t, _grid)
+        t_like, t_matches, t_missing = track_likelihood_from_grid(t, _grid)
         like += t_like
         matches += t_matches
         missing += t_missing
@@ -243,6 +346,28 @@ def evaluate_likelihood_iterations(
     ] = None,
     alpha: Optional[float] = None,
 ) -> dict[int, dict]:
+    """Evaluates the likelihood over multiple grids.
+
+    Args:
+        grid_iterations (Mapping[int, Union[Path, Grid]]): A series of grids or
+        paths to the grid files, sorted by iteration.
+        groundtruth_tracks (np.ndarray): The groundtruth tracks used for
+        likelihood evaluation.
+        prior (Union[list[Probability], dict[RCCoords, list[Probability]]],
+        optional): The prior to be used, it can be either a list of
+        probabilities representing the prior to use for all cells, or a
+        dictionary mapping cell indices to their priors. If not provided, no
+        prior is used.
+        alpha (float, optional): The hyperconcentration parameter representing
+        the trust in the prior. If the prior is provided, this argument must
+        also be provided.
+
+    Returns:
+        dict: A dictionary keyed by iteration number, each containing a
+        dictionary with the total likelihood, the number of matches, the
+        average likelihood, the number of tracks and the number of missing
+        points.
+    """
     results = Parallel(n_jobs=-1)(
         delayed(evaluate_likelihood)(
             grid_path, groundtruth_tracks, prior, alpha

@@ -8,9 +8,9 @@ from bff.evaluation import (
     evaluate_likelihood,
     evaluate_likelihood_iterations,
     pixels_from_track,
-    track_likelihood_model,
-    track_likelihood_net,
-    track_likelihood_net_2,
+    track_likelihood_from_dynamic_map,
+    track_likelihood_from_grid,
+    track_likelihood_from_net,
 )
 from bff.nets import DiscreteDirectional
 from mod.grid import Grid
@@ -65,7 +65,7 @@ def test_track_likelihood_net(occupancy: OccupancyMap) -> None:
         ]
     ).T
     net = DiscreteDirectional(window_size=2)
-    like, matches = track_likelihood_net(
+    like, matches = track_likelihood_from_net(
         pixels, occupancy, window_size=2, scale=1, net=net
     )
     assert matches == 3
@@ -81,7 +81,7 @@ def test_track_likelihood_net_2() -> None:
         ]
     ).T
     dynamics = np.array([[[1 / 8] * 8, [1 / 4] * 2 + [1 / 12] * 6]])
-    like, matches = track_likelihood_net_2(pixels, dynamics)
+    like, matches = track_likelihood_from_dynamic_map(pixels, dynamics)
     assert matches == 3
     assert like == pytest.approx(1 / 8 + 1 / 4 + 1 / 12)
 
@@ -103,7 +103,7 @@ def test_track_likelihood_model(
             [1.7, 3.3, np.pi, 1, 1],
         ]
     ).T
-    like, matches, missing = track_likelihood_model(
+    like, matches, missing = track_likelihood_from_grid(
         track, grid, missing_cells=missing_strategy
     )
     assert like == pytest.approx(expected_like)
