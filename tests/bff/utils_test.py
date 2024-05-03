@@ -2,16 +2,10 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from torch import device, float32
+from torch import device
 
 from bff.nets import DiscreteDirectional
-from bff.utils import (
-    Trainer,
-    Window,
-    estimate_dynamics,
-    random_input,
-    scale_quivers,
-)
+from bff.utils import Trainer, Window, estimate_dynamics, scale_quivers
 from mod.occupancy import OccupancyMap
 
 
@@ -24,17 +18,6 @@ def test_scale_quivers() -> None:
     assert (scaled[0, :] == np.zeros(8)).all()
     assert (scaled[1, :] == np.ones(8)).all()
     assert (scaled[2, :] == [1 / 2, 1, 1 / 4, 1 / 4, 0, 0, 0, 0]).all()
-
-
-@pytest.mark.parametrize(
-    ["p_occupied", "expected"],
-    [(0, np.zeros((1, 1, 16, 16))), (1, np.ones((1, 1, 16, 16)))],
-)
-def test_random_input(p_occupied: float, expected: np.ndarray) -> None:
-    expected[0, 0, 8, 8] = 0  # center should always be zero
-    tensor = random_input(size=16, p_occupied=p_occupied)
-    assert tensor.dtype == float32
-    assert (tensor.numpy() == expected).all()
 
 
 def test_window_size() -> None:

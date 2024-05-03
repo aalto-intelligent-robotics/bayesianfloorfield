@@ -31,6 +31,20 @@ def plot_dir(
     dpi: int = 300,
     cmap: str = "inferno",
 ) -> None:
+    """Plots the specied directional probabilities extracted from a dynamic
+    map.
+
+    Args:
+        occupancy (OccupancyMap): The occupancy map to overlay on top of the
+        dynamics.
+        dynamics (np.ndarray): An array containing the 8-directional dynamics.
+        dir (Direction): The direction for which the dynamics should be
+        plotted.
+        dpi (int, optional): The dots-per-inch (pixel per inch) for the created
+        plot. Default is 300.
+        cmap (str, optional): The colormap used to map normalized data values
+        to RGB colors. Default is "inferno".
+    """
     binary_map = occupancy.binary_map
     plt.figure(dpi=dpi)
     plt.title(f"Direction: {dir.name}")
@@ -58,6 +72,23 @@ def plot_quivers(
     normalize: bool = True,
     dpi: int = 300,
 ) -> None:
+    """Plots the eight-direction people dynamics as quivers/arrow plots over
+    the occupancy map.
+
+    Args:
+        occupancy (np.ndarray): The occupancy grid as a 2D numpy array.
+        dynamics (np.ndarray): An array containing the 8-directional dynamics.
+        scale (int, optional): Scaling factor used for reducing arrow density.
+        Default is 1.
+        window_size (int, optional): The size of the window to be plotted. If
+        provided, a center must also be provided.
+        center (RowColumnPair, optional): The center of the window to be
+        plotted. If provided, a window size must also be provided.
+        normalize (bool, optional): If True, the arrow scales are normalized.
+        Default is True.
+        dpi (int, optional): The dots-per-inch (pixel per inch) for the plot.
+        Default is 300.
+    """
     sz_occ = occupancy.shape
     sz_dyn = dynamics.shape
     assert sz_occ[0] // scale == sz_dyn[0] and sz_occ[1] // scale == sz_dyn[1]
@@ -113,20 +144,10 @@ def plot_quivers(
 
 
 def scale_quivers(d: np.ndarray) -> np.ndarray:
+    """Scales the quivers by normalizing the arrow lengths."""
     max = np.amax(d, axis=1)
     ret = np.expand_dims(np.where(max != 0, max, 1), axis=1)
     return d / ret
-
-
-def random_input(
-    size: int = 32,
-    p_occupied: float = 0.5,
-    device: torch.device = torch.device("cpu"),
-) -> torch.Tensor:
-    w = Window(size)
-    a = torch.rand((1, 1, size, size), device=device) < p_occupied
-    a[0, 0, w.center[0], w.center[1]] = 0  # ensure center is empty
-    return a.type(torch.float)
 
 
 def estimate_dynamics(
@@ -138,6 +159,32 @@ def estimate_dynamics(
     batch_size: int = 4,
     device: Optional[torch.device] = None,
 ) -> np.ndarray:
+    """Estimates the dynamics of people flow in a given occupancy.
+    The function applies the network on windows of the provided occupancy to
+    estimate the people flow dynamics in the region. It handles both
+    OccupancyMap objects and numpy arrays representing occupancy. By default,
+    if a scale factor greater than 1 is provided and the occupancy is an
+    OccupancyMap, it will rescale the occupancy binary map accordingly before
+    applying the network.
+
+    Args:
+        net (PeopleFlow): PeopleFlow network used for estimating the dynamics.
+        occupancy (Union[OccupancyMap, np.ndarray]): Occupancy space to
+        estimate the dynamics upon.
+        scale (int, optional): Scale down factor for the occupancy map. This
+        parameter is ignored when occupancy is a numpy array. Default is 1.
+        net_scale (int, optional): Scale factor for the network window size.
+        Default is 1.
+        batch_size (int, optional): Number of patch samples to take from each
+        batch. Default is 4.
+        device (torch.device, optional): The device to move the network model
+        and data to for computation. If not given, automatically set to GPU if
+        available, else CPU.
+
+    Returns:
+        np.ndarray: An numpy array containing the estimated dynamics of people
+        flow.
+    """
     window = Window(net.window_size * net_scale)
     if not device:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -346,24 +393,45 @@ class Trainer:
 
 
 class Window:
+    """A class representing a window on a 2-dimensional grid."""
+
     def __init__(self, size: int) -> None:
+        """Init `Window` class
+
+        Args:
+            size (int): The size of the square window, represented as the
+            length of one side.
+        """
         self.size = size
 
     @property
     def half_size(self) -> int:
+        """Returns the integer division of the window size by 2"""
         return self.size // 2
 
     @property
     def center(self) -> RowColumnPair:
+        """Returns the coordinate of the window center"""
         return (self.half_size, self.half_size)
 
     @property
     def pad_amount(self) -> Sequence[int]:
+        """Returns the number of rows and columns to pad around the window"""
         return (self.half_size, self.half_size + self.size % 2 - 1)
 
     def corners(
         self, center: RowColumnPair, bounds: Optional[Sequence[int]] = None
     ) -> Sequence[int]:
+        """Returns the corners of a window centered on the center.
+
+        Args:
+            center (RowColumnPair): The center coordinates of the window.
+            bounds (Sequence[int], optional): If given, the provided
+            corners will not exceed these bounds. Bounds should be given as
+            (min_row, max_row, min_col, max_col). Defaults to None.
+        Returns:
+            Sequence[int]: The corner coordinates as (left, top, right, bottom)
+        """
         left, top, right, bottom = (
             center[1] - self.half_size,  # left
             center[0] - self.half_size,  # top
@@ -382,6 +450,18 @@ class Window:
     def indeces(
         self, center: RowColumnPair, bounds: Optional[Sequence[int]] = None
     ) -> Set[RowColumnPair]:
+        """Generates the indices encompassed by the window centered in center.
+
+        Args:
+            center (RowColumnPair): The center coordinates of the window.
+            bounds (Sequence[int], optional): If given, the provided indeces
+            will not exceed these bounds. Bounds should be given as
+            (min_row, max_row, min_col, max_col). Defaults to None.
+
+        Returns:
+            Set[RowColumnPair]: A set of row and column pairs representing each
+            cell position within the window.
+        """
         left, top, right, bottom = self.corners(center, bounds)
         indeces = {
             (row, col)

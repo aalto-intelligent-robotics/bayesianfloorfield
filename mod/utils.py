@@ -38,6 +38,7 @@ class TDRCCoords(NamedTuple):
 
 
 def RC_from_TDRC(rc: TDRCCoords, num_rows: int) -> RCCoords:
+    """Converts a top-down row column pair into bottom-up from `num_rows`"""
     if num_rows <= rc.row:
         raise ValueError(
             f"Row index greater than available rows ({rc.row=}, {num_rows=})"
@@ -46,6 +47,7 @@ def RC_from_TDRC(rc: TDRCCoords, num_rows: int) -> RCCoords:
 
 
 def TDRC_from_RC(rc: RCCoords, num_rows: int) -> TDRCCoords:
+    """Converts a bottom-up row column pair into top-down from `num_rows`"""
     if num_rows <= rc.row:
         raise ValueError(
             f"Row index greater than available rows ({rc.row=}, {num_rows=})"
@@ -54,6 +56,7 @@ def TDRC_from_RC(rc: RCCoords, num_rows: int) -> TDRCCoords:
 
 
 def RC_from_XY(xy: XYCoords, origin: XYCoords, resolution: float) -> RCCoords:
+    """Converts an x-y coordinate pair into bottom-up row column coordinates"""
     row = int((xy.y - origin.y) // resolution)
     col = int((xy.x - origin.x) // resolution)
     if row < 0 or col < 0:
@@ -62,6 +65,7 @@ def RC_from_XY(xy: XYCoords, origin: XYCoords, resolution: float) -> RCCoords:
 
 
 def XY_from_RC(rc: RCCoords, origin: XYCoords, resolution: float) -> XYCoords:
+    """Converts a bottom-up row column pair into x-y coordinates"""
     x = rc.column * resolution + origin.x
     y = rc.row * resolution + origin.y
     return XYCoords(x, y)
@@ -70,16 +74,20 @@ def XY_from_RC(rc: RCCoords, origin: XYCoords, resolution: float) -> XYCoords:
 def TDRC_from_XY(
     xy: XYCoords, origin: XYCoords, resolution: float, num_rows: int
 ) -> TDRCCoords:
+    """Converts an x-y coordinate pair into top-down row column coordinates"""
     return TDRC_from_RC(RC_from_XY(xy, origin, resolution), num_rows)
 
 
 def XY_from_TDRC(
     rc: TDRCCoords, origin: XYCoords, resolution: float, num_rows: int
 ) -> XYCoords:
+    """Converts a top-down row column pair into x-y coordinates"""
     return XY_from_RC(RC_from_TDRC(rc, num_rows), origin, resolution)
 
 
 class Direction(IntEnum):
+    """A class representing a cardinal direction as an enumerated integer."""
+
     E = 0
     NE = 1
     N = 2
@@ -91,26 +99,32 @@ class Direction(IntEnum):
 
     @property
     def rad(self) -> float:
+        """The Direction in radians"""
         return self.value * _2PI / 8
 
     @property
     def range(self) -> tuple[float, float]:
+        """Lower and upper bounds of the range of the Direction in radians"""
         a = self.rad
         return ((a - np.pi / 8) % _2PI, a + np.pi / 8)
 
     @property
     def u(self) -> float:
+        """the u component of the Direction"""
         return np.cos(self.rad)
 
     @property
     def v(self) -> float:
+        """the v component of the Direction"""
         return np.sin(self.rad)
 
     @property
     def uv(self) -> tuple[float, float]:
+        """the (u, v) components of the Direction"""
         return (self.u, self.v)
 
     def contains(self, rad: float) -> bool:
+        """Returns whether the range of this Direction contains angle `rad`"""
         a = rad % _2PI
         s, e = self.range
         return bool(
@@ -120,6 +134,7 @@ class Direction(IntEnum):
 
     @classmethod
     def from_rad(cls, rad: float) -> "Direction":
+        """Returns the Direction corresponding to the angle `rad`"""
         for dir in Direction:
             if dir.contains(rad):
                 return dir
@@ -129,6 +144,7 @@ class Direction(IntEnum):
     def from_points(
         cls, p1: tuple[float, float], p2: tuple[float, float]
     ) -> "Direction":
+        """Returns the Direction of the angle between `p1` and `p2`"""
         assert p1 != p2
         rad = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])
         return cls.from_rad(rad)
@@ -141,6 +157,21 @@ def extended_validator(
     tuple[Literal[False], exceptions.ValidationError],
     tuple[Literal[False], exceptions.SchemaError],
 ]:
+    """Validates a JSON file against a schema extended to handle default
+    properties.
+
+    Args:
+        json_path (str): The path of the JSON file to be validated.
+        schema_path (str): The path of the JSON Schema file.
+
+    Returns:
+        Union[tuple[Literal[True], dict], tuple[Literal[False],
+        exceptions.ValidationError], tuple[Literal[False],
+        exceptions.SchemaError]]: Returns a tuple where the first element is
+        True if validation is successful and False otherwise. The second
+        element is either the content of the JSON file as a dictionary if
+        validation is successful, or else an error message.
+    """
     schema_file = open(schema_path, "r")
     my_schema = json.load(schema_file)
 
@@ -184,4 +215,20 @@ def get_local_settings(
     tuple[Literal[False], exceptions.ValidationError],
     tuple[Literal[False], exceptions.SchemaError],
 ]:
+    """Fetches and validates local settings from a JSON file.
+
+    Args:
+        json_path (str, optional): The path of the local settings JSON file.
+        Defaults to "config/local_settings.json".
+        schema_path (str, optional): The path of the local settings JSON Schema
+        file. Defaults to "config/local_settings_schema.json".
+
+    Returns:
+        Union[tuple[Literal[True], dict], tuple[Literal[False],
+        exceptions.ValidationError], tuple[Literal[False],
+        exceptions.SchemaError]]: Returns a tuple where the first element is
+        True if validation is successful and False otherwise. The second
+        element is either the local settings data as a dictionary if validation
+        is successful, or else an error message.
+    """
     return extended_validator(json_path, schema_path)

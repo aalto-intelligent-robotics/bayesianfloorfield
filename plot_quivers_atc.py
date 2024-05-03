@@ -75,15 +75,12 @@ grid_bayes = pickle.load(open(GRID_BAYES_DATA[0], "rb"))
 grid.assign_cell_priors_to_grid(
     grid=grid_bayes, priors=net_prior, alpha=ALPHA, add_missing_cells=True
 )
-show_discrete_directional(
-    grid_bayes, occupancy, occ_overlay=True, dpi=3000, save_name="atc_0"
-)
+show_discrete_directional(grid_bayes, occupancy, dpi=3000, save_name="atc_0")
 
 grid_bayes = pickle.load(open(GRID_BAYES_DATA[10000], "rb"))
 show_discrete_directional(
     grid_bayes,
     occupancy,
-    occ_overlay=True,
     dpi=3000,
     save_name="atc_10k_noprior",
 )
@@ -91,11 +88,7 @@ show_discrete_directional(
 grid.assign_cell_priors_to_grid(
     grid=grid_bayes, priors=net_prior, alpha=ALPHA, add_missing_cells=True
 )
-show_discrete_directional(
-    grid_bayes, occupancy, occ_overlay=True, dpi=3000, save_name="atc_10k"
-)
+show_discrete_directional(grid_bayes, occupancy, dpi=3000, save_name="atc_10k")
 
 grid_bayes = pickle.load(open(GRID_TEST_DATA, "rb"))
-show_discrete_directional(
-    grid_bayes, occupancy, occ_overlay=True, dpi=3000, save_name="atc_gt"
-)
+show_discrete_directional(grid_bayes, occupancy, dpi=3000, save_name="atc_gt")

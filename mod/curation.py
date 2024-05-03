@@ -17,18 +17,15 @@ def mm2m(val: float) -> float:
 
 
 class DataCurator:
-    """
-    Stump of class handing data curation. In current version handles only
-    subsampling.
-    """
+    """Stump of class handing data curation. In current version handles only
+    subsampling."""
 
-    # TODO Update description and add logging
-    def __init__(self, params):
-        """
-        Constructor for data curator class.
-        :param params: Parameters guiding the curation (see json schema
-        @config/curator_shema.json)
-        :type params: dict
+    def __init__(self, params: dict):
+        """Init `DataCurator` class.
+
+        Args:
+            params (dict): Parameters guiding the curation (see json schema
+            @config/curator_shema.json)
         """
         # load params
         self.params = params
@@ -39,16 +36,12 @@ class DataCurator:
         logger.info("Parameters for data curation {}".format(self.params))
 
     def curate(self):
-        """
-        Function running main curation loop
-        """
+        """Function running main curation loop"""
         if self.params["chunk_size"] != 0:
             self.__chunk_processing()
 
     def __chunk_processing(self):
-        """
-        Function for curating large csv files in chunks.
-        """
+        """Function for curating large csv files in chunks."""
         header = True
         logger.info(
             "Processing in chunks of size {}".format(self.params["chunk_size"])
@@ -87,41 +80,50 @@ class DataCurator:
 
             header = False
 
-    def __subsample(self, chunk):
-        """
-        Function for subsampling data. Depending on the flag different
+    def __subsample(self, chunk: pd.DataFrame) -> pd.DataFrame:
+        """Function for subsampling data. Depending on the flag different
         subsampling policies can be used. Currently only available one is to
         keep very n-th line.
 
-        :param chunk: Data to be subsample :type chunk: dataframe :return:
-        Subsampled data :rtype: dataframe
+        Args:
+            chunk (pd.Dataframe): Data to be subsampled
+
+        Returns:
+            pd.Dataframe: Subsampled data
         """
         result = []
         if self.params["subsample"]["method"] == "line_keep":
             result = chunk.iloc[:: self.params["subsample"]["parameter"], :]
         logger.info(
             "Was {} rows, remained {} rows".format(
-                len(chunk.index), len(result.index)
+                len(chunk.index), len(result.index)  # type: ignore
             )
         )
         return result
 
-    def __drop_columns(self, chunk):
-        """
-        Function dropping redundant columns from the original data
+    def __drop_columns(self, chunk: pd.DataFrame) -> pd.DataFrame:
+        """Function dropping redundant columns from the original data
 
-        :param chunk: Data to be edited
-        :type chunk: dataframe
-        :return: edited chunk
-        :rtype: dataframe
+        Args:
+            chunk (pd.Dataframe): Data to be edited
+
+        Returns:
+            pd.Dataframe: Edited data
         """
         for c in self.params["drop_columns"]:
             chunk = chunk.drop(c, axis=1)
             logger.info("Dropping column: {}".format(c))
         return chunk
 
-    def __process_column(self, chunk):
-        # TODO Description and logging
+    def __process_column(self, chunk: pd.DataFrame) -> pd.DataFrame:
+        """Function processing columns in the original data
+
+        Args:
+            chunk (pd.Dataframe): Data to be edited
+
+        Returns:
+            pd.Dataframe: Edited data
+        """
         for function_name, column_name in zip(
             self.params["process_columns"]["method"],
             self.params["process_columns"]["columns"],
@@ -133,7 +135,15 @@ class DataCurator:
                 chunk[column_name] = chunk[column_name].apply(mm2m)
         return chunk
 
-    def __replace_header(self, chunk):
+    def __replace_header(self, chunk: pd.DataFrame) -> pd.DataFrame:
+        """Function replacing the header row from the original data
+
+        Args:
+            chunk (pd.Dataframe): Data to be edited
+
+        Returns:
+            pd.Dataframe: Edited data
+        """
         for old_name, new_name in zip(
             self.params["replace_header"]["input"],
             self.params["replace_header"]["replacement"],

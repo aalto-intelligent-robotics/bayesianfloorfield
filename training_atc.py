@@ -66,7 +66,7 @@ occupancy = OccupancyMap.from_yaml(MAP_METADATA)
 grid_train: grid.Grid = pickle.load(open(GRID_TRAIN_DATA, "rb"))
 grid_test: grid.Grid = pickle.load(open(GRID_TEST_DATA, "rb"))
 
-show_all(grid_train, occupancy, occ_overlay=True, dpi=PLOT_DPI)
+show_all(grid_train, occupancy, dpi=PLOT_DPI)
 
 # transform = None
 transform = transforms.Compose(

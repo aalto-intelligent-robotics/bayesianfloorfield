@@ -9,6 +9,7 @@ from mod.occupancy import OccupancyMap
 
 
 def polar2cart(theta: float, r: float) -> tuple[float, float]:
+    """Converts polar coordinates to cartesian coordinates"""
     z = r * np.exp(1j * theta)
     return np.real(z), np.imag(z)
 
@@ -16,19 +17,20 @@ def polar2cart(theta: float, r: float) -> tuple[float, float]:
 def show_all(
     grid: Grid,
     occ: Optional[OccupancyMap] = None,
-    occ_overlay: bool = False,
     dpi: int = 100,
 ) -> None:
+    """Calls `show_raw` and `show_discrete_directional` in sequence"""
     show_raw(grid, dpi)
     if (
         grid.model == DiscreteDirectional
         or grid.model == BayesianDiscreteDirectional
     ):
-        show_discrete_directional(grid, occ, occ_overlay, dpi)
+        show_discrete_directional(grid, occ, dpi)
     plt.show()
 
 
 def show_raw(grid: Grid, dpi: int = 100) -> None:
+    """Plots all the data in the given Grid"""
     plt.figure(dpi=dpi)
 
     for cell in grid.cells.values():
@@ -38,10 +40,10 @@ def show_raw(grid: Grid, dpi: int = 100) -> None:
 def show_discrete_directional(
     grid: Grid,
     occ: Optional[OccupancyMap] = None,
-    occ_overlay: bool = False,
     dpi: int = 100,
     save_name: Optional[str] = None,
 ) -> None:
+    """Plots the dynamics in `Grid`, optionally overlaid on the map `occ`."""
     plt.figure(dpi=dpi)
     X = []
     Y = []
@@ -64,7 +66,7 @@ def show_discrete_directional(
                 for i in range(8)
             ]
         )
-    if occ and occ_overlay:
+    if occ:
         show_occupancy(occ)
     plt.quiver(X, Y, U, V, scale_units="xy", scale=2, minshaft=2, minlength=0)
     if save_name:
@@ -72,6 +74,7 @@ def show_discrete_directional(
 
 
 def show_occupancy(occ: OccupancyMap) -> None:
+    """Plots the given occupancy map"""
     r = occ.resolution
     o = occ.origin
     sz = occ.map.size
