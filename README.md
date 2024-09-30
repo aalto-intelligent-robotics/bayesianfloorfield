@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/github/license/aalto-intelligent-robotics/bayesianfloorfield?style=for-the-badge&logo=googledocs&logoColor=white)](./LICENSE)
 
 **Authors:** [Francesco
-Verdoja](https://research.aalto.fi/en/persons/francesco-verdoja) (<francesco.verdoja@aalto.fi>), [Tomasz Piotr
+Verdoja](https://fverdoja.github.io) (<francesco.verdoja@aalto.fi>), [Tomasz Piotr
 Kucner](https://research.aalto.fi/en/persons/tomasz-kucner), and [Ville
 Kyrki](https://research.aalto.fi/en/persons/ville-kyrki)\
 **Affiliation:** School of Electrical Engineering, Aalto University, Finland
@@ -149,14 +149,12 @@ scripts in this codebase to replicate our experiments, following these steps:
 If you find this work useful, please consider citing:
 
 ```bibtex
-@misc{verdoja_2024_bayesian_floor_field,
-  title = {Bayesian Floor Field: Transferring people flow predictions across environments},
-  author = {Verdoja, Francesco and Kucner, Tomasz Piotr and Kyrki, Ville},
-  publisher = {arXiv},
-  year = {2024},
-  url = {https://arxiv.org/abs/2208.10851},
-  doi = {10.48550/ARXIV.2208.10851},
-  copyright = {Creative Commons Attribution Non Commercial No Derivatives 4.0 International}
+@inproceedings{202410_verdoja_bayesian,
+  title       = {{Bayesian} {Floor} {Field}: {Transferring} people flow predictions across environments},
+  booktitle   = {2024 {IEEE}/{RSJ} {International} {Conference} on {Intelligent} {Robots} and {Systems} ({IROS})},
+  author      = {Verdoja, Francesco and Kucner, Tomasz Piotr and Kyrki, Ville},
+  month       = oct,
+  year        = {2024},
 }
 ```
 
