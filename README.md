@@ -25,7 +25,7 @@ maps of dynamics.
 
 ## Presentation
 
-[![Video presentation](https://www.youtube.com/watch?v=JQHTyouIDd0)](https://www.youtube.com/watch?v=JQHTyouIDd0)
+[![Video presentation](https://img.youtube.com/vi/JQHTyouIDd0/0.jpg)](https://www.youtube.com/watch?v=JQHTyouIDd0)
 
 ## Installation
 
