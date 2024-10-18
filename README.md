@@ -23,6 +23,10 @@ demonstrate the ability of our model to increase data efficiency and to
 generalize across real large-scale environments, which is unprecedented for
 maps of dynamics.
 
+## Presentation
+
+[![Video presentation](https://www.youtube.com/watch?v=JQHTyouIDd0)](https://www.youtube.com/watch?v=JQHTyouIDd0)
+
 ## Installation
 
 ### Software requirements
