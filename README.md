@@ -154,11 +154,13 @@ If you find this work useful, please consider citing:
 
 ```bibtex
 @inproceedings{202410_verdoja_bayesian,
-  title       = {{Bayesian} {Floor} {Field}: {Transferring} people flow predictions across environments},
-  booktitle   = {2024 {IEEE}/{RSJ} {International} {Conference} on {Intelligent} {Robots} and {Systems} ({IROS})},
-  author      = {Verdoja, Francesco and Kucner, Tomasz Piotr and Kyrki, Ville},
-  month       = oct,
-  year        = {2024},
+  title     = {{Bayesian} {Floor} {Field}: {Transferring} people flow predictions across environments},
+  booktitle = {2024 {IEEE}/{RSJ} {International} {Conference} on {Intelligent} {Robots} and {Systems} ({IROS})},
+  author    = {Verdoja, Francesco and Kucner, Tomasz Piotr and Kyrki, Ville},
+  month     = oct,
+  year      = {2024},
+  pages     = {12801--12807},
+  doi       = {10.1109/IROS58592.2024.10802300}
 }
 ```
 
